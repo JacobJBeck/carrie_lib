@@ -8,10 +8,10 @@
 #include <random>
 #include <string>
 
-#include "Math/easymath.h"
-#include "FileIO/FileIn.h"
-#include "FileIO/FileOut.h"
-#include "Learning/IPolicy.h"
+#include "Math/include/easymath.h"
+#include "FileIO/include/FileIn.h"
+#include "FileIO/include/FileOut.h"
+#include "IPolicy.h"
 
 typedef matrix1d State;
 typedef matrix1d Action;

@@ -5,12 +5,12 @@
 template<class S, class A, class R>
 class IPolicy {
 public:
-    typedef typename S State;
-    typedef typename A Action;
-    typedef typename R Reward;
+    typedef S State;
+    typedef A Action;
+    typedef R Reward;
 
-    virtual void update(Reward R) = 0;
-    virtual Action operator()(State S) = 0;
+    virtual void update(Reward rwd) = 0;
+    virtual Action operator()(State stt) = 0;
 };
 
 #endif  // SINGLEAGENT_IPOLICY_H_

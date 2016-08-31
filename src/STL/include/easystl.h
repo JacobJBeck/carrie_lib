@@ -2,6 +2,7 @@
 #ifndef STL_EASYSTL_H_
 #define STL_EASYSTL_H_
 #include <algorithm>
+#include <list>
 #include <vector>
 
 namespace easystl {

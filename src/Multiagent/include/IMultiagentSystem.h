@@ -7,7 +7,7 @@
 #include <vector>
 
 // Library includes
-#include "Learning/IAgent.h"
+#include "Learning/include/IAgent.h"
 
 //! Agents container
 template<class Agent>
@@ -26,13 +26,13 @@ class IMultiagentSystem {
     std::vector<Action> get_actions(std::vector<State> S) {
         std::vector<Action> A(S.size());
         // get all actions, given a list of states
-        for (size_t i = 0; i < agents.size(); i++) {
+        for (std::size_t i = 0; i < agents.size(); i++) {
             A[i] = agents[i]->get_action(S[i]);
         }
         return A;
     }
     inline void update_policy_values(std::vector<Reward> R) {
-        for (size_t i = 0; i < agents.size(); i++)
+        for (std::size_t i = 0; i < agents.size(); i++)
             agents[i]->update_policy_values(R[i]);
     }
 };

@@ -18,7 +18,7 @@
 #include <queue>
 #include <vector>
 
-#include "Math/easymath.h"
+#include "Math/include/easymath.h"
 
 typedef unsigned long ULONG;
 enum searchType { ASTAR, DIJKSTRA };  // BREADTH, DEPTH

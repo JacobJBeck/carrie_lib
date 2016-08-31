@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
-#include "Learning/NeuralNet.h"
-#include "Learning/Evolution.h"
-#include "FileIO/FileIn.h"
-#include "FileIO/FileOut.h"
+#include "NeuralNet.h"
+#include "Evolution.h"
+#include "FileIO/include/FileIn.h"
+#include "FileIO/include/FileOut.h"
 
 class NeuroEvoParameters {
  public:

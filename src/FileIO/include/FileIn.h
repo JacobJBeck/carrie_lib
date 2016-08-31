@@ -24,22 +24,6 @@ A namespace that handles variable setting and standard file reading operations.
 namespace easyio {
 bool file_exists(std::string filename);
 
-//! Read in pair type objects
-template<typename T>
-std::vector<T> read_pairs(std::string file_name,
-    std::string separator = STRING_UNINITIALIZED) {
-    std::vector<std::vector<int> >  m = read2<int>(file_name, separator);
-    std::vector<T> var;
-    for (std::vector<int> i : m) {
-        if (i.size() != 2) {
-            FileErrors::not_pair(file_name);
-        } else {
-            var.push_back(T(i[0], i[1]));
-        }
-    }
-    return var;
-}
-
 //! Infer the separator from the file type
 static std::string detect_separator(std::string file_name) {
     std::vector<std::string> divided = Conversion::divide(file_name, ".");
@@ -86,6 +70,22 @@ static std::vector<std::vector<DataType> > read2(std::string file_name,
 
     printf("... Successfully read in file %s.\n", file_name.c_str());
     return d;
+}
+
+//! Read in pair type objects
+template<typename T>
+std::vector<T> read_pairs(std::string file_name,
+    std::string separator = STRING_UNINITIALIZED) {
+    std::vector<std::vector<int> >  m = read2<int>(file_name, separator);
+    std::vector<T> var;
+    for (std::vector<int> i : m) {
+        if (i.size() != 2) {
+            FileErrors::not_pair(file_name);
+        } else {
+            var.push_back(T(i[0], i[1]));
+        }
+    }
+    return var;
 }
 
 //! Reads variables (double) from a file to access by name (string)

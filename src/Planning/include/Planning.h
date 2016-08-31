@@ -59,7 +59,7 @@ auto get_euclidean_heuristic(G* funcs, Gbase g, V v) {
 //! Gets the bgl named params necessary for astar search
 template<class G, class Gbase, class V>
 auto get_params(G* GraphWrapper, const Gbase&, const V& goal) {
-    GraphWrapper->pred_pmap = boost::associative_property_map<G::pred_map>(GraphWrapper->predecessor);
+    GraphWrapper->pred_pmap = boost::associative_property_map<typename G::pred_map>(GraphWrapper->predecessor);
     
     return boost::weight_map(GraphWrapper->weight)
         .predecessor_map(GraphWrapper->pred_pmap)
@@ -78,7 +78,7 @@ std::list<V> astar(G* g, V start, V goal) {
     // initializes and resets the predecessor maps
     g->init_pmaps();
 
-    auto gv = Planning::detail::astar_goal_visitor<G::vertex_descriptor>(e);
+    auto gv = Planning::detail::astar_goal_visitor<typename G::vertex_descriptor>(e);
     auto p = boost::weight_map(g->weight).predecessor_map(g->pred_pmap).distance_map(g->dist_pmap).visitor(gv);
 
     std::list<V> solution;

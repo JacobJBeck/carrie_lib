@@ -38,10 +38,15 @@ public:
             tmp.append(tok);
 
             // Create the directory
-            mkdir(tmp.c_str());
+            #ifdef WIN32
+                mkdir(tmp.c_str());
+            #else
+                mkdir(tmp.c_str(),666);
+            #endif
             
             // append a / to the path for the next token and get it
             tmp.append("/");
+
             tok = strtok(NULL, "/");
         }
         delete[]tok;

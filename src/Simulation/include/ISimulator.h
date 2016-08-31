@@ -1,8 +1,8 @@
 #pragma once
-#include "FileIO/FileOut.h"
+#include "FileIO/include/FileOut.h"
 #include "Domains/IDomainStateful.h"
-#include "Multiagent/IMultiagentSystem.h"
-#include "Learning/NeuroEvo.h"
+#include "Multiagent/include/IMultiagentSystem.h"
+#include "Learning/include/NeuroEvo.h"
 
 /*
 Instructions for using ISimulator:

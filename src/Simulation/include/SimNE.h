@@ -11,8 +11,8 @@
 
 // Libraries
 #include "ISimulator.h"
-#include "Multiagent/MultiagentNE.h"
-#include "Math/easymath.h"
+#include "Multiagent/include/MultiagentNE.h"
+#include "Math/include/easymath.h"
 
 class SimNE : public ISimulator {
  public:
@@ -38,8 +38,8 @@ class SimNE : public ISimulator {
     void runExperimentDifferenceReplay();
     struct accounting {
         accounting() {
-            best_run = -DBL_MAX;
-            best_run_performance = -DBL_MAX;
+            best_run = -std::numeric_limits<double>::max();
+            best_run_performance = -std::numeric_limits<double>::max();
             n = 0;
             best_perf_idx = 0;
         }

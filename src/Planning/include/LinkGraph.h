@@ -13,8 +13,8 @@
 #include <map>
 
 // library includes
-#include "Math/easymath.h"
-#include "FileIO/FileOut.h"
+#include "Math/include/easymath.h"
+#include "FileIO/include/FileOut.h"
 #include "Planning.h"
 
 typedef boost::adjacency_list
