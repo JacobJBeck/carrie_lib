@@ -38,7 +38,7 @@ public:
             tmp.append(tok);
 
             // Create the directory
-            #ifdef WIN32
+            #ifdef _WIN32
                 mkdir(tmp.c_str());
             #else
                 mkdir(tmp.c_str(),666);

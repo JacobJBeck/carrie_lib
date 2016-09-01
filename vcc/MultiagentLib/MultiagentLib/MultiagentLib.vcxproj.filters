@@ -18,15 +18,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\Multiagent\IMultiagentSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\Multiagent\MultiagentNE.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\src\Multiagent\MultiagentNE.cpp">
+    <ClCompile Include="..\..\..\src\Multiagent\src\MultiagentNE.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

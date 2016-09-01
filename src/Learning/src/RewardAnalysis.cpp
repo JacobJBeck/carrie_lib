@@ -1,6 +1,5 @@
 #include "RewardAnalysis.h"
 
-
 RewardAnalysis::RewardAnalysis(void)
 {
 }
