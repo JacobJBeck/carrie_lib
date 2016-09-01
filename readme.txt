@@ -10,8 +10,8 @@ WINDOWS:
 3. Clean and build
 
 LINUX:
-TODO - makefile to run for linux
-
+1. chmod +x carrie_build.sh
+2. ./carrie_make.sh
 
 Updates:
 - There is no 'domain' lib. This is still under development and should be recompiled each time.
