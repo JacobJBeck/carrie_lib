@@ -1,2 +1,0 @@
-﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (..\..\..\build\x64\Debug\) contains files shared from another project (AllLibs.vcxproj, LearningLib.vcxproj, MathLib.vcxproj, MultiagentLib.vcxproj, PlanningLib.vcxproj, SimulationLib.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  FileIOLib.vcxproj -> C:\Users\Carrie\Source\Repos\carrie_lib\vcc\FileIOLib\FileIOLib\..\..\..\build\x64\Debug\FileIOLib.lib
