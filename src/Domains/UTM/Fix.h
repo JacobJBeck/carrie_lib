@@ -8,7 +8,7 @@
 #include <utility>
 
 // Library includes
-#include "Planning/MultiGraph.h"
+#include "Planning/include/MultiGraph.h"
 #include "UAV.h"
 
 class Fix {

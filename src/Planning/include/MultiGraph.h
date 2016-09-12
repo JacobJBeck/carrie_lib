@@ -2,8 +2,8 @@
 #ifndef PLANNING_MULTIGRAPH_H
 #define PLANNING_MULTIGRAPH_H
 
-#include "Math/easymath.h"
-#include "STL/easystl.h"
+#include "Math/include/easymath.h"
+#include "STL/include/easystl.h"
 
 /**
 * This class handles multiple layers of weights that have the same underlying

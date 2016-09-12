@@ -9,7 +9,7 @@
 #include <utility>
 
 // libraries includes
-#include "Planning/LinkGraph.h"
+#include "Planning/include/LinkGraph.h"
 
 class UAV {
     /*

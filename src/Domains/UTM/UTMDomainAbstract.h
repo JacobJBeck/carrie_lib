@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "Domains/IDomainStateful.h"
-#include "Planning/RAGS.h"
-#include "Planning/MultiGraph.h"
+#include "Planning/include/RAGS.h"
+#include "Planning/include/MultiGraph.h"
 #include "IAgentManager.h"
 #include "Link.h"
 #include "Sector.h"
