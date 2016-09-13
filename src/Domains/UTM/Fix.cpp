@@ -18,6 +18,7 @@ Fix::Fix(XY loc, size_t ID_set, MultiGraph<LinkGraph>* highGraph,
     loc(loc), n_types(n_types_set) {
     YAML::Node config = YAML::LoadFile("config.yaml");
     traffic_mode = config["modes"]["traffic"].as<std::string>();
+    destination_mode = config["modes"]["destinations"].as<std::string>();
     if (traffic_mode == "probabilistic")
         pgen = config["constants"]["generation_probability"].as<double>();
     else if (traffic_mode == "generated")
@@ -57,13 +58,21 @@ UAV* Fix::generate_UAV(bool reset) {
     if (reset)
         calls = 0;
     auto e = highGraph->at()->get_edges();
-    size_t index = calls%e.size();
     XY end_loc;
-    if (e[index].first == ID) {
-        end_loc = destination_locs[e[index].second];
+    if (destination_mode == "static") {
+        size_t index = calls%e.size();
+        if (e[index].first == ID) {
+            end_loc = destination_locs[e[index].second];
+        } else {
+            end_loc = destination_locs[e[index].first];
+        }
     } else {
-        end_loc = destination_locs[e[index].first];
+        do {
+            size_t index = rand() % e.size();
+            end_loc = destination_locs[e[index].second];
+        } while (end_loc == loc);
     }
+    
     // Creates an equal number of each type;
     int type_id_set = calls%n_types;
     calls++;

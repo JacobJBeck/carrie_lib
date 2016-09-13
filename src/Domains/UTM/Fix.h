@@ -35,7 +35,7 @@ class Fix {
     size_t ID, genrate, n_types, n_uavs;
     easymath::XY loc;
     MultiGraph<LinkGraph>* highGraph;
-    std::string traffic_mode;
+    std::string traffic_mode, destination_mode;
     double pgen;
     std::vector<easymath::XY> destination_locs;
 };

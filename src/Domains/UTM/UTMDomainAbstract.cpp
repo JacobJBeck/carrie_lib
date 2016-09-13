@@ -29,12 +29,13 @@ UTMDomainAbstract::UTMDomainAbstract(std::string config_file, bool) :
     string vfile = domain_dir + "nodes.csv";
     string airspace_mode = configs["modes"]["airspace"].as<std::string>();
     n_sectors = configs["constants"]["sectors"].as<size_t>();
-    size_t xdim = configs["constants"]["xdim"].as<size_t>();
-    size_t ydim = configs["constants"]["ydim"].as<size_t>();
-
+    
     // Variables to fill 
-    if (airspace_mode != "saved" || !easyio::file_exists(efile))
+    if (airspace_mode != "saved" || !easyio::file_exists(efile)) {
+        size_t xdim = configs["constants"]["xdim"].as<size_t>();
+        size_t ydim = configs["constants"]["ydim"].as<size_t>();
         generate_new_airspace(domain_dir, n_sectors, xdim, ydim);
+    }
 
     vector<edge> edges = easyio::read_pairs<edge>(efile);
     vector<XY> locs = easyio::read_pairs<XY>(vfile);
@@ -60,6 +61,7 @@ UTMDomainAbstract::UTMDomainAbstract(std::string config_file, bool) :
 
     objective_mode = configs["modes"]["objective"].as<std::string>();
     reward_mode = configs["modes"]["reward"].as<std::string>();
+
 }
 
 void UTMDomainAbstract::add_link(UTMDomainAbstract::edge e, double flat_capacity) {
@@ -98,12 +100,16 @@ UTMDomainAbstract::UTMDomainAbstract(string config_file) : UTMDomainAbstract(con
         s->generation_pt = new Fix(s->xy, s->ID, highGraph, sector_locs, n_types);
         sectors.push_back(s);
     }
+    
     YAML::Node configs = YAML::LoadFile("config.yaml");
     if (configs["modes"]["traffic"].as<std::string>() == "constant") {
         size_t n_uavs = configs["constants"]["vehicles"].as<size_t>();
         for (size_t i = 0; i < n_uavs; i++) {
-            size_t s = rand() % sectors.size();
-            sectors[s]->generation_pt->generate_UAV();
+            // Create UAVs on links
+            std::vector<std::vector<int> > poses = easyio::read2<int>("Domains/" + std::to_string(n_sectors) + "_Sectors/initial_pose.csv");
+            for (std::vector<int> p : poses) {
+                UAVs.push_back(sectors.at(p[0])->generation_pt->generate_UAV());
+            }
         }
     }
 }
@@ -244,6 +250,8 @@ void UTMDomainAbstract::simulateStep(matrix2d agent_actions) {
 
     // Make UAVs reach their destination
     absorbUAVTraffic();
+    std::printf("%i,\n ", UAVs.size());
+    system("pause");
 
     // Plan over new cost maps
     if (action_changed)
