@@ -1,2 +1,6 @@
 .sdf
 .exe
+.obj
+.sdf
+/Debug/
+.suo
