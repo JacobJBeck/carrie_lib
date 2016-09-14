@@ -1,23 +1,22 @@
 // Copyright 2016 Carrie Rebhuhn
 #include "MultiagentNE.h"
-#include <vector>
 #include <stdio.h>
+#include <vector>
 
 using std::vector;
 
-MultiagentNE::MultiagentNE(size_t n_agents, NeuroEvoParameters* NE_params) :
-    NE_params(NE_params) {
+MultiagentNE::MultiagentNE(size_t num_agents, size_t num_inputs,
+    size_t num_hidden, size_t num_outputs) {
     std::printf("Creating a MultiagentNE object.\n");
-    for (int i = 0; i < n_agents; i++) {
-        agents.push_back(new NeuroEvo(NE_params));
+    for (size_t i = 0; i < num_agents; i++) {
+        agents.push_back(new NeuroEvo(num_agents, num_inputs, num_hidden,
+            num_outputs));
     }
 }
 
 MultiagentNE::MultiagentNE(IDomainStateful* domain):
-    MultiagentNE(domain->get_n_agents(),
-        new NeuroEvoParameters(domain->get_nn_inputs(),
-            domain->get_nn_outputs()))
-{}
+    MultiagentNE(domain->get_n_agents(), 20, domain->get_nn_inputs(),
+            domain->get_nn_outputs()) {}
 
 MultiagentNE::~MultiagentNE(void) {
     for (size_t i = 0; i < agents.size(); i++) {

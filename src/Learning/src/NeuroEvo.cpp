@@ -54,7 +54,7 @@ bool NeuroEvo::select_new_member() {
 void NeuroEvo::generate_new_members() {
     // Mutate existing members to generate more
     list<NeuralNet*>::iterator popMember = population.begin();
-    for (int i = 0; i < k_population_size_; i++) {  // add new members
+    for (size_t i = 0; i < k_population_size_; i++) {  // add new members
         // commented out so that you take parent's evaluation
         // (*popMember)->evaluation = 0.0;
         // dereference pointer AND iterator
@@ -106,16 +106,9 @@ void NeuroEvo::deep_copy(const NeuroEvo &NE) {
 
 
 void NeuroEvo::save(std::string fileout) {
-    matrix2d nets;
     for (NeuralNet* p : population) {
-        matrix1d node_info;
-        matrix1d wt_info;
-        p->save(&node_info, &wt_info);
-        nets.push_back(node_info);
-        nets.push_back(wt_info);
+        p->save(fileout);
     }
-
-    FileOut::print_vector(nets, fileout);
 }
 
 void NeuroEvo::load(std::string filein) {

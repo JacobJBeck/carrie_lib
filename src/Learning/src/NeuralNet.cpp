@@ -2,6 +2,7 @@
 #include "NeuralNet.h"
 #include <vector>
 #include <string>
+#include <ctime>
 
 using easymath::rand;
 using easymath::sum;
@@ -27,8 +28,22 @@ void NeuralNet::mutate() {
     }
 }
 
+double NeuralNet::randAddFanIn(double fan_in) {
+    // Adds random amount mutRate_% of the time,
+    // amount based on fan_in and mutstd
+    if (rand(0, 1) > mutRate_) {
+        return 0.0;
+    } else {
+        // FOR MUTATION
+        std::default_random_engine generator;
+        generator.seed(static_cast<size_t>(time(NULL)));
+        std::normal_distribution<double> distribution(0.0, mutStd);
+        return distribution(generator);
+    }
+}
+
 NeuralNet::NeuralNet(size_t num_inputs, size_t num_hidden, size_t num_outputs,
-    double gamma) :nodes_(vector<size_t>(3)), gamma_(gamma),
+    double gamma): gamma_(gamma),
     evaluation_(0), mutRate_(0.5), mutStd(1.0) {
     layers_.push_back(Layer(num_inputs, num_hidden));
     layers_.push_back(Layer(num_hidden, num_outputs));
@@ -81,50 +96,6 @@ void NeuralNet::setMatrixMultiplicationStorage() {
         matrix_multiplication_storage.push_back(matrix1d(l.num_nodes_above_));
     matrix_multiplication_storage.push_back
         (matrix1d(layers_.back().num_nodes_below_));
-}
-
-NeuralNet::NeuralNet(vector<size_t> &nodes, double gamma) :
-    evaluation_(0.0), nodes_(nodes), gamma_(gamma) {
-    setRandomWeights();
-    setMatrixMultiplicationStorage();
-}
-
-void NeuralNet::train(const matrix2d &observations, const matrix2d &T,
-    double epsilon, int iterations) {
-    // just ensure it's bigger always to begin...
-    double err = 2 * epsilon + 1.0;
-
-    if (iterations == 0) {
-        while (err >= epsilon) {
-            matrix1d errs;
-            for (size_t i = 0; i < observations.size(); i++) {
-                errs.push_back(backProp(observations[i], T[i]));
-            }
-            err = sum(errs);
-            printf("Err=%f\n", err);
-        }
-    } else {
-        int step = 0;
-
-        while (err >= epsilon && iterations >= step) {
-            matrix1d errs;
-            for (size_t i = 0; i < observations.size(); i++) {
-                errs.push_back(backProp(observations[i], T[i]));
-            }
-            err = sum(errs);
-            printf("Err=%f\n", err);
-            step++;
-        }
-    }
-}
-
-matrix1d NeuralNet::predictBinary(matrix1d observations) {
-    for (auto l : layers_) {
-        observations.push_back(1.0);  // add 1 for bias
-        observations = matrixMultiply(observations, l.w_bar_);
-        sigmoid(&observations);  // Compute outputs
-    }
-    return observations;
 }
 
 matrix1d NeuralNet::predictContinuous(matrix1d observations) {

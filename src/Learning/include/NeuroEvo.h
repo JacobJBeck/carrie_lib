@@ -17,7 +17,14 @@
 class NeuroEvo : public Evolution<NeuralNet> {
  public:
      //! Life cycle
-    NeuroEvo() {}
+    NeuroEvo(size_t population_size, size_t num_input, size_t num_hidden,
+        size_t num_output): k_population_size_(population_size) {
+        for (size_t i = 0; i <population_size; i++) {
+            NeuralNet* nn = new NeuralNet(num_input, num_hidden, num_output);
+            population.push_back(nn);
+        }
+        pop_member_active = population.begin();
+    }
     ~NeuroEvo(void) { deletePopulation(); }
     void deep_copy(const NeuroEvo &NE);
     void deletePopulation();
