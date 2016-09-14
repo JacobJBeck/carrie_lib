@@ -23,7 +23,7 @@ class NeuralNet : public IPolicy<State, Action, Reward> {
     // Life cycle
     NeuralNet(size_t num_input, size_t num_hidden, size_t num_output,
         double gamma = 0.9);
-    explicit NeuralNet(std::vector<size_t> &, double gamma = 0.9);
+    NeuralNet() : gamma_(0.9) {};
     virtual ~NeuralNet() {}
 
     // Mutators
