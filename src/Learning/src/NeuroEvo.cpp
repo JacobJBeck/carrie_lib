@@ -8,15 +8,10 @@
 using std::list;
 using std::vector;
 
-NeuroEvoParameters::NeuroEvoParameters(size_t inputSet, size_t outputSet) :
-    nInput(inputSet), nOutput(outputSet), epsilon(0.1) {
-}
-
-
 void NeuroEvo::update_policy_values(double R) {
     // Add together xi values, for averaging
     double xi = 0.1;  // "learning rate" for NE
-    double V = (*pop_member_active)->get_evaluation();
+    double V = (*pop_member_active)->getEvaluation();
     V = xi*(R - V) + V;
     (*pop_member_active)->update(V);
 }
@@ -36,16 +31,6 @@ NeuroEvo::Action NeuroEvo::get_action(std::vector<NeuroEvo::State> state) {
     }
 
     return get_action(stateSum);
-}
-
-NeuroEvo::NeuroEvo(NeuroEvoParameters* neuroEvoParamsSet) {
-    params = neuroEvoParamsSet;
-    for (int i = 0; i < params->popSize; i++) {
-        NeuralNet* nn = new NeuralNet(params->nInput,
-            params->nHidden, params->nOutput);
-        population.push_back(nn);
-    }
-    pop_member_active = population.begin();
 }
 
 void NeuroEvo::deletePopulation() {
@@ -69,7 +54,7 @@ bool NeuroEvo::select_new_member() {
 void NeuroEvo::generate_new_members() {
     // Mutate existing members to generate more
     list<NeuralNet*>::iterator popMember = population.begin();
-    for (int i = 0; i < params->popSize; i++) {  // add k new members
+    for (int i = 0; i < k_population_size_; i++) {  // add new members
         // commented out so that you take parent's evaluation
         // (*popMember)->evaluation = 0.0;
         // dereference pointer AND iterator
@@ -82,9 +67,9 @@ void NeuroEvo::generate_new_members() {
 
 double NeuroEvo::getBestMemberVal() {
     // Find the HIGHEST FITNESS value of any neural network
-    double highest = population.front()->get_evaluation();
+    double highest = population.front()->getEvaluation();
     for (NeuralNet* p : population) {
-        if (highest < p->get_evaluation()) highest = p->get_evaluation();
+        if (highest < p->getEvaluation()) highest = p->getEvaluation();
     }
     return highest;
 }
@@ -98,7 +83,7 @@ void random_shuffle(list<NeuralNet*> *L) {
 void NeuroEvo::select_survivors() {
     // Select neural networks with the HIGHEST FITNESS
     population.sort(NNCompare);  // Sort by the highest fitness
-    size_t nExtraNN = population.size() - params->popSize;
+    size_t nExtraNN = population.size() - k_population_size_;
     for (size_t i = 0; i < nExtraNN; i++) {  // Remove the extra
         delete population.back();
         population.pop_back();
@@ -111,7 +96,7 @@ void NeuroEvo::select_survivors() {
 
 void NeuroEvo::deep_copy(const NeuroEvo &NE) {
     // Creates new pointer addresses for the neural nets
-    params = NE.params;
+    k_population_size_ = NE.k_population_size_;
 
     deletePopulation();
     for (NeuralNet* p : NE.population) {

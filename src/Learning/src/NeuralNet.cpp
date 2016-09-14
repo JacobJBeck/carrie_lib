@@ -1,4 +1,4 @@
-// Copyright 2016 Carrie Rebhuhn
+// Copyright 2016 Carrie Rebhuhns
 #include "NeuralNet.h"
 #include <vector>
 #include <string>
@@ -8,20 +8,6 @@ using easymath::sum;
 using std::vector;
 using std::string;
 
-double NeuralNet::randAddFanIn(double) {
-    // Adds random amount mutationRate% of the time,
-    // amount based on fan_in and mutstd
-    if (rand(0, 1) > mutationRate) {
-        return 0.0;
-    } else {
-        // FOR MUTATION
-        std::default_random_engine generator;
-        generator.seed(static_cast<size_t>(time(NULL)));
-        std::normal_distribution<double> distribution(0.0, mutStd);
-        return distribution(generator);
-    }
-}
-
 double NeuralNet::randSetFanIn(double fan_in) {
     // For initialization of the neural net weights
     double rand_neg1to1 = rand(-1, 1)*0.1;
@@ -30,199 +16,75 @@ double NeuralNet::randSetFanIn(double fan_in) {
 }
 
 void NeuralNet::mutate() {
-    for (size_t i = 0; i < Wbar.size(); i++) {
-        for (size_t j = 0; j < Wbar[i].size(); j++) {
+    for (Layer &l : layers_) {
+        for (matrix1d &wt_outer : l.w_bar_) {
             // #pragma parallel omp for
-            for (size_t k = 0; k < Wbar[i][j].size(); k++) {
-                double fan_in = static_cast<double>(Wbar[i].size());
-                Wbar[i][j][k] += randAddFanIn(fan_in);
+            for (double &w : wt_outer) {
+                double fan_in = static_cast<double>(l.num_nodes_above_);
+                w += randAddFanIn(fan_in);
             }
         }
     }
 }
 
-void NeuralNet::setRandomWeights() {
-    Wbar = matrix3d(connections());
-    W = matrix3d(connections());
-    for (int c = 0; c < connections(); c++) {  // number of layers
-        int above = c;
-        int below = c + 1;
+NeuralNet::NeuralNet(size_t num_inputs, size_t num_hidden, size_t num_outputs,
+    double gamma) :nodes_(vector<size_t>(3)), gamma_(gamma),
+    evaluation_(0), mutRate_(0.5), mutStd(1.0) {
+    layers_.push_back(Layer(num_inputs, num_hidden));
+    layers_.push_back(Layer(num_hidden, num_outputs));
 
-        // Populate Wbar with small random weights, including bias
-        Wbar[c] = (matrix2d(nodes_[above] + 1));
-
-        // above+1 include bias
-        for (int i = 0; i < nodes_[above] + 1; i++) {
-            // reserve memory for the connections below
-            Wbar[c][i] = matrix1d(nodes_[below]);
-            for (int j = 0; j < nodes_[below]; j++) {
-                double fan_in = nodes_[above] + 1.0;
-                Wbar[c][i][j] = randSetFanIn(fan_in);
-            }
-        }
-
-        W[c] = Wbar[c];
-        W[c].pop_back();  // remove extra bias weights
-    }
-}
-
-NeuralNet::NeuralNet(size_t nInputs, size_t nHidden, size_t nOutputs, double
-    gamma) :nodes_(vector<size_t>(3)), gamma_(gamma),
-    evaluation(0), mutationRate(0.5), mutStd(1.0) {
-    nodes_[0] = nInputs;
-    nodes_[1] = nHidden;
-    nodes_[2] = nOutputs;
-
-    setRandomWeights();
     setMatrixMultiplicationStorage();
 }
 
 void NeuralNet::load(string filein) {
-    // loads neural net specs
     matrix2d wts = easyio::read2<double>(filein);
-
-    // CURRENTLY HARDCODED TO ONLY ALLOW A SINGLE LAYER
-
-    /// TOP CONTAINS TOPOLOGY INFORMATION
-    nodes_ = vector<size_t>(3);
-    nodes_[0] = static_cast<int>(wts[0][0]);
-    nodes_[1] = static_cast<int>(wts[0][1]);
-    nodes_[2] = static_cast<int>(wts[0][2]);
-
-    Wbar = matrix3d(connections());
-    W = matrix3d(connections());
-    int index = 0;  // index for accessing NN elements
-    for (int c = 0; c < connections(); c++) {  // number of layers
-        int above = c;
-        int below = c + 1;
-
-        // Populate Wbar with loaded weights, including bias
-        Wbar[c] = (matrix2d(nodes_[above] + 1));
-        for (int i = 0; i < nodes_[above] + 1; i++) {
-            // reserve memory for the connections below
-            Wbar[c][i] = matrix1d(nodes_[below]);
-            for (int j = 0; j < nodes_[below]; j++) {
-                Wbar[c][i][j] = wts[1][index++];
-            }
-        }
-
-        W[c] = Wbar[c];
-        W[c].pop_back();  // remove extra bias weights
-    }
-    setMatrixMultiplicationStorage();
+    load(wts[0], wts[1]);
 }
 
 void NeuralNet::save(string fileout) {
     matrix2d outmatrix(2);
-    for (size_t i = 0; i < nodes_.size(); i++) {
-        outmatrix[0].push_back(static_cast<double>(nodes_[i]));
-    }
-
-    for (int c = 0; c < connections(); c++) {
-        int above = c;
-        int below = c + 1;
-
-        for (int i = 0; i < nodes_[above] + 1; i++) {  // above+1 include bias
-            for (int j = 0; j < nodes_[below]; j++) {
-                outmatrix[1].push_back(Wbar[c][i][j]);
-            }
+    outmatrix[0].push_back(layers_[0].num_nodes_above_);
+    for (Layer l : layers_) {
+        outmatrix[0].push_back(static_cast<double>(l.num_nodes_below_));
+        for (auto wt_outer : l.w_bar_) {
+            outmatrix[1].insert(outmatrix[1].end(), wt_outer.begin(),
+                wt_outer.end());
         }
     }
     FileOut::print_vector(outmatrix, fileout);
 }
 
 void NeuralNet::load(matrix1d node_info, matrix1d wt_info) {
-    // CURRENTLY HARDCODED TO ONLY ALLOW A SINGLE LAYER
+    size_t num_inputs = static_cast<int>(node_info[0]);
+    size_t num_hidden = static_cast<int>(node_info[1]);
+    size_t num_outputs = static_cast<int>(node_info[2]);
 
-    /// TOP CONTAINS TOPOLOGY INFORMATION
-    nodes_ = vector<size_t>(3);
-    nodes_[0] = static_cast<int>(node_info[0]);
-    nodes_[1] = static_cast<int>(node_info[1]);
-    nodes_[2] = static_cast<int>(node_info[2]);
+    layers_.push_back(Layer(num_inputs, num_hidden));
+    layers_.push_back(Layer(num_hidden, num_outputs));
 
-    Wbar = matrix3d(connections());
-    W = matrix3d(connections());
     int index = 0;  // index for accessing NN elements
-
-    // Connections are number of layers
-    for (int c = 0; c < connections(); c++) {
-        int above = c;
-        int below = c + 1;
-
-        // Populate Wbar with loaded weights, including bias
-        Wbar[c] = (matrix2d(nodes_[above] + 1));
-        // above+1 include bias;
-        for (int i = 0; i < nodes_[above] + 1; i++) {
-            // reserve memory for the connections below
-            Wbar[c][i] = matrix1d(nodes_[below]);
-            for (int j = 0; j < nodes_[below]; j++) {
-                Wbar[c][i][j] = wt_info[index++];
+    for (Layer &l : layers_) {  // number of layers
+        for (matrix1d &wt_outer : l.w_bar_) {
+            for (double &wt_inner : wt_outer) {
+                wt_inner = wt_info[index++];
             }
         }
-
-        W[c] = Wbar[c];
-        W[c].pop_back();  // remove extra bias weights
+        l.w_ = l.w_bar_;
+        l.w_.pop_back();
     }
     setMatrixMultiplicationStorage();
-}
-
-
-
-void NeuralNet::save(matrix1d *node_info, matrix1d *wt_info) {
-    *node_info = matrix1d(nodes_.size());
-
-    for (size_t i = 0; i < nodes_.size(); i++) {
-        node_info->at(i) = static_cast<double>(nodes_[i]);
-    }
-
-    for (int c = 0; c < connections(); c++) {  // number of layers
-        int above = c;
-        int below = c + 1;
-
-        for (int i = 0; i < nodes_[above] + 1; i++) {  // above+1 include bias;
-            for (int j = 0; j < nodes_[below]; j++) {
-                wt_info->push_back(Wbar[c][i][j]);
-            }
-        }
-    }
 }
 
 void NeuralNet::setMatrixMultiplicationStorage() {
-    // Allocates space for the matrix multiplication storage container,
-    // based on current Wbar/connections()
-    matrix_multiplication_storage = matrix2d(connections());
-    for (int connection = 0; connection < connections(); connection++) {
-        matrix_multiplication_storage[connection]
-            = matrix1d(Wbar[connection][0].size(), 0.0);
-        if (connection + 1 != connections()) {  // if not the output layer
-            matrix_multiplication_storage[connection].push_back(1.0);
-        }
-    }
-}
-
-void NeuralNet::addInputs(int nToAdd) {
-    nodes_[0] += nToAdd;
-
-    // add new connections leading to each of the lower nodes
-    for (int i = 0; i < nToAdd; i++) {
-        // adding another connection, each new one leads to nodes below
-        Wbar[0].push_back(matrix1d(nodes_[1], 0.0));
-
-        /*for (int j=0; j<nodes_[1]; j++){
-            double fan_in = nodes_[0]+1.0;
-            double rand_neg1to1 = (double(rand())/double(RAND_MAX))*2.0-1.0;
-            Wbar[0].back()[j]=rand_neg1to1/sqrt(fan_in);
-            Wbar[0].back()[j]=0.0;
-        }*/
-    }
-    W[0] = Wbar[0];
-    W[0].pop_back();
-
-    setMatrixMultiplicationStorage();
+    matrix_multiplication_storage = matrix2d();
+    for (auto l : layers_)
+        matrix_multiplication_storage.push_back(matrix1d(l.num_nodes_above_));
+    matrix_multiplication_storage.push_back
+        (matrix1d(layers_.back().num_nodes_below_));
 }
 
 NeuralNet::NeuralNet(vector<size_t> &nodes, double gamma) :
-    evaluation(0.0), nodes_(nodes), gamma_(gamma) {
+    evaluation_(0.0), nodes_(nodes), gamma_(gamma) {
     setRandomWeights();
     setMatrixMultiplicationStorage();
 }
@@ -257,9 +119,9 @@ void NeuralNet::train(const matrix2d &observations, const matrix2d &T,
 }
 
 matrix1d NeuralNet::predictBinary(matrix1d observations) {
-    for (int connection = 0; connection < connections(); connection++) {
+    for (auto l : layers_) {
         observations.push_back(1.0);  // add 1 for bias
-        observations = matrixMultiply(observations, Wbar[connection]);
+        observations = matrixMultiply(observations, l.w_bar_);
         sigmoid(&observations);  // Compute outputs
     }
     return observations;
@@ -267,122 +129,17 @@ matrix1d NeuralNet::predictBinary(matrix1d observations) {
 
 matrix1d NeuralNet::predictContinuous(matrix1d observations) {
     observations.push_back(1.0);
-    matrixMultiply(observations, Wbar[0], &matrix_multiplication_storage[0]);
+    matrixMultiply(observations, layers_[0].w_bar_,
+        &matrix_multiplication_storage[0]);
     sigmoid(&matrix_multiplication_storage[0]);
 
-    for (int connection = 1; connection < connections(); connection++) {
-        // static size allocation.
-        // last element is set to 1.0, bias (may not need to?)
-        matrix_multiplication_storage[connection - 1].back() = 1.0;
-
-        matrixMultiply(matrix_multiplication_storage[connection - 1],
-            Wbar[connection], &matrix_multiplication_storage[connection]);
-        sigmoid(&matrix_multiplication_storage[connection]);
+    for (size_t i = 1; i < layers_.size(); i++) {
+        matrix_multiplication_storage[i - 1].back() = 1.0;
+        matrixMultiply(matrix_multiplication_storage[i - 1],
+            layers_[i].w_bar_, &matrix_multiplication_storage[i]);
+        sigmoid(&matrix_multiplication_storage[i]);
     }
-
     return matrix_multiplication_storage.back();
-}
-
-matrix2d NeuralNet::batchPredictBinary(const matrix2d &observations) {
-    matrix2d out;
-    for (size_t i = 0; i < observations.size(); i++) {
-        out.push_back(predictBinary(observations[i]));
-    }
-    return out;
-}
-
-matrix2d NeuralNet::batchPredictContinuous(const matrix2d &observations) {
-    matrix2d out;
-    for (size_t i = 0; i < observations.size(); i++) {
-        out.push_back(predictContinuous(observations[i]));
-    }
-    return out;
-}
-
-double NeuralNet::SSE(const matrix1d &myVector) {
-    double err = 0.0;
-    for (size_t i = 0; i < myVector.size(); i++) {
-        err += myVector[i] * myVector[i];
-    }
-    return err;
-}
-
-size_t NeuralNet::connections() {
-    return nodes_.size() - 1;
-}
-
-double NeuralNet::backProp(const matrix1d &observations, const matrix1d &t) {
-    // 'observations' is the input vector, 't' is the 'target vector'
-    // returns the SSE for the output vector
-
-    matrix2d Ohat;  // outputs with bias
-    matrix3d D;  // stored derivatives
-    // Go through network "feed forward" computation
-
-    feedForward(observations, &Ohat, &D);
-
-    // "stored derivatives of the quadratic deviations"
-    matrix1d e(Ohat.back().size() - 1, 0.0);
-
-    for (size_t i = 0; i < Ohat.back().size() - 1; i++) {
-        e[i] = (Ohat.back()[i] - t[i]);
-    }
-
-    // Hidden/output layer delta calcs
-    matrix2d delta;
-    for (int i = 0; i < connections(); i++) {
-        delta.push_back(matrix1d());
-    }
-    delta.back() = matrixMultiply(D.back(), e);  // output layer delta
-
-    // back propagation
-    for (size_t connection = connections() - 2; connection >= 0; connection--) {
-        matrix2d mult = matrixMultiply(D[connection], W[connection + 1]);
-        delta[connection] = matrixMultiply(mult, delta[connection + 1]);
-    }
-
-    // Corrections to weights
-    for (int c = 0; c < connections(); c++) {
-        matrix2d DeltaWbarT =
-            matrixMultiply(delta[c], Ohat[c]);
-        for (size_t i = 0; i < Wbar[c].size(); i++) {
-            for (size_t j = 0; j < Wbar[c][i].size(); j++) {
-                // ji because it's transpose :)
-                Wbar[c][i][j] -= gamma_*DeltaWbarT[j][i];
-            }
-        }
-
-        W[c] = Wbar[c];
-        W[c].pop_back();
-    }
-
-    // Calculate SS
-    return SSE(e);
-}
-
-void NeuralNet::feedForward(const matrix1d &o, matrix2d *Ohat, matrix3d* D) {
-    Ohat->push_back(o);
-    Ohat->back().push_back(1.0);  // add 1 for bias
-
-    for (int c = 0; c < connections(); c++) {
-        Ohat->push_back(matrixMultiply(Ohat->at(c), Wbar[c]));
-        sigmoid(&Ohat->back());
-
-        // D stuff
-        D->push_back(matrix2d());
-
-        // number of hidden/output units, excluding bias
-        size_t k = Ohat->back().size();
-
-        for (int i = 0; i < k; i++) {  // add for last entry
-            // For last output given, calculate the derivatives
-            double Oi = Ohat->back().at(i);
-            D->at(c).push_back(matrix1d(k, 0.0));
-            D->at(c)[i][i] = Oi*(1 - Oi);  // create a diagonal matrix
-        }
-
-        Ohat->back().push_back(1.0);
-    }
 }
 
 matrix2d NeuralNet::matrixMultiply(const matrix2d &A, const matrix2d &B) {
