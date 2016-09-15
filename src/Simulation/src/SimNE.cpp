@@ -32,7 +32,7 @@ void SimNE::runExperiment() {
 void SimNE::runExperimentDifferenceReplay() {
     for (int ep = 0; ep < n_epochs; ep++) {
         time_t epoch_start = time(NULL);
-        this->epoch_difference_replay(ep);
+        this->epochDifferenceReplay(ep);
         time_t epoch_end = time(NULL);
         time_t epoch_time = epoch_end - epoch_start;
         time_t run_time_left = (time_t(n_epochs - ep))*epoch_time;
@@ -51,7 +51,7 @@ void SimNE::runExperimentDifferenceReplay() {
 void SimNE::runExperimentDifference() {
     for (int ep = 0; ep < n_epochs; ep++) {
         time_t epoch_start = time(NULL);
-        this->epoch_difference(ep);
+        this->epochDifference(ep);
         time_t epoch_end = time(NULL);
         time_t epoch_time = epoch_end - epoch_start;
         time_t run_time_left = (time_t(n_epochs - ep))*epoch_time;
@@ -67,17 +67,17 @@ void SimNE::runExperimentDifference() {
     }
 }
 
-void SimNE::run_simulation(bool log, matrix3d& recorded, int suppressed) {
+void SimNE::runSimulation(bool log, matrix3d& recorded, int suppressed) {
     //! Turns recording on if recorded actions passed in empty
     bool recording_on = recorded.empty();
 
     while (domain->step()) {
         matrix2d A;
         if (recording_on) {
-            A = this->get_actions();
+            A = this->getActions();
             recorded.push_back(A);
         } else {
-            A = recorded[domain->get_step()];
+            A = recorded[domain->getStep()];
         }
 
         if (suppressed >= 0) {
@@ -89,9 +89,9 @@ void SimNE::run_simulation(bool log, matrix3d& recorded, int suppressed) {
     }
 }
 
-void SimNE::run_simulation(bool log, int suppressed_agent) {
+void SimNE::runSimulation(bool log, int suppressed_agent) {
     while (domain->step()) {
-        matrix2d A = this->get_actions();
+        matrix2d A = this->getActions();
 
         if (suppressed_agent >= 0) {
             A[suppressed_agent] = matrix1d(A[suppressed_agent].size(), 1000);
@@ -103,12 +103,12 @@ void SimNE::run_simulation(bool log, int suppressed_agent) {
     }
 }
 
-void SimNE::epoch_difference(int ep) {
+void SimNE::epochDifference(int ep) {
     printf("Epoch %i", ep);
     SimNE::accounting accounts = SimNE::accounting();
     MAS->generate_new_members();
     do {
-        run_simulation(false);
+        runSimulation(false);
 
         double G = domain->getPerformance()[0];
         matrix1d D(MAS->agents.size(), 0.0);
@@ -118,7 +118,7 @@ void SimNE::epoch_difference(int ep) {
         domain->reset();
         for (size_t i = 0; i < MAS->agents.size(); i++) {
             //! Suppresses agent i
-            run_simulation(false, static_cast<int>(i));
+            runSimulation(false, static_cast<int>(i));
             double Gc = domain->getPerformance()[0];
 
             D[i] = G - Gc;
@@ -134,7 +134,7 @@ void SimNE::epoch_difference(int ep) {
 }
 
 
-void SimNE::epoch_difference_replay(int ep) {
+void SimNE::epochDifferenceReplay(int ep) {
     printf("Epoch %i", ep);
     SimNE::accounting accounts = SimNE::accounting();
 
@@ -142,7 +142,7 @@ void SimNE::epoch_difference_replay(int ep) {
     do {
         matrix3d recorded_actions;
         printf("Wait for it...");
-        run_simulation(false, recorded_actions);
+        runSimulation(false, recorded_actions);
         printf("waited");
 
         double G = domain->getPerformance()[0];
@@ -155,7 +155,7 @@ void SimNE::epoch_difference_replay(int ep) {
         for (size_t i = 0; i < MAS->agents.size(); i++) {
             //! Suppresses agent i during the simulation
             //! Recorded actions played instead of neural network decisions.
-            run_simulation(false, recorded_actions, static_cast<int>(i));
+            runSimulation(false, recorded_actions, static_cast<int>(i));
             double Gc = domain->getPerformance()[0];
 
             D[i] = G - Gc;
@@ -178,7 +178,7 @@ void SimNE::epoch(int ep) {
 
     do {
         // Gets the g
-        run_simulation(log);
+        runSimulation(log);
         matrix1d R = domain->getRewards();
         matrix1d perf = domain->getPerformance();
 
@@ -198,7 +198,7 @@ void SimNE::epoch(int ep) {
         domain->exportStepsOfTeam(accounts.best_perf_idx, "trained");
 }
 
-vector<State> SimNE::get_actions() {
-    vector<State> S = domain->get_states();
+vector<State> SimNE::getActions() {
+    vector<State> S = domain->getStates();
     return MAS->get_actions(S);
 }

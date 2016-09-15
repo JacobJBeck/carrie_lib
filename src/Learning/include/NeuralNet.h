@@ -6,6 +6,7 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <algorithm>
 
 #include "Math/include/easymath.h"
 #include "FileIO/include/FileIn.h"
@@ -23,7 +24,7 @@ class NeuralNet : public IPolicy<State, Action, Reward> {
     // Life cycle
     NeuralNet(size_t num_input, size_t num_hidden, size_t num_output,
         double gamma = 0.9);
-    NeuralNet() : gamma_(0.9) {};
+    NeuralNet() : gamma_(0.9) {}
     virtual ~NeuralNet() {}
 
     // Mutators
@@ -41,39 +42,24 @@ class NeuralNet : public IPolicy<State, Action, Reward> {
     struct Layer {
         size_t num_nodes_above_, num_nodes_below_;
         matrix2d w_bar_, w_;
-        Layer(size_t above, size_t below) :
-            num_nodes_above_(above), num_nodes_below_(below) {
-            // Populate Wbar with small random weights, including bias
-            w_bar_ = easymath::zeros(above + 1, below);
-
-            for (matrix1d &wt_outer : w_bar_) {
-                for (double & wt_inner : wt_outer) {
-                    double fan_in = above + 1.0;
-                    wt_inner = randSetFanIn(fan_in);
-                }
-            }
-            w_ = w_bar_;
-            w_.pop_back();
-        }
+        Layer(size_t above, size_t below);
     };
     std::vector<Layer> layers_;
     matrix1d predictContinuous(const matrix1d o);
 
     double evaluation_;
     double gamma_;
-    double mutStd;  // mutation standard deviation
-    double mutRate_;  // probability that each connection is changed
-
-    //! container for all outputs on way through neural network:
-    //! for FAST multiplication
-    matrix2d matrix_multiplication_storage;
+    double mut_std_;          //! mutation standard deviation
+    double mut_rate_;        //! probability that each connection is changed
+    matrix2d mult_buffer_;  //! container for all matrix multiplication output
 
     //! sets storage for matrix multiplication.
     //! Must be called each time network structure is changed/initiated
-    void setMatrixMultiplicationStorage();
+    //! sets    mult_buffer_[0].size() = [HIDDEN]
+    //!         mult_buffer_[1].size() = [OUTPUT]
+    void reserveMultBuffer();
+    matrix1d getTopology();
 
-
-    double randAddFanIn(double fan_in);
 
     //! Static functions
     static void matrixMultiply(const matrix1d &A, const matrix2d &B,
@@ -85,5 +71,7 @@ class NeuralNet : public IPolicy<State, Action, Reward> {
     static void sigmoid(matrix1d *myVector);
     static void cmp_int_fatal(size_t a, size_t b);
     static double randSetFanIn(double fan_in);
+    static double randAddFanIn(double fan_in, double mut_rate, double mut_std);
+    static matrix1d flatten(const matrix2d &A);
 };
 #endif  // SRC_LEARNING_INCLUDE_NEURALNET_H_

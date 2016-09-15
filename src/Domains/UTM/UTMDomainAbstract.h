@@ -1,6 +1,6 @@
 // Copyright 2016 Carrie Rebhuhn
-#ifndef DOMAINS_UTM_UTMDOMAINABSTRACT_H_
-#define DOMAINS_UTM_UTMDOMAINABSTRACT_H_
+#ifndef SRC_DOMAINS_UTM_UTMDOMAINABSTRACT_H_
+#define SRC_DOMAINS_UTM_UTMDOMAINABSTRACT_H_
 
 #include <utility>
 #include <map>
@@ -9,9 +9,8 @@
 #include <vector>
 
 #include "Domains/IDomainStateful.h"
-#include "Planning/include/RAGS.h"
-#include "Planning/include/MultiGraph.h"
 #include "IAgentManager.h"
+#include "Planning/include/MultiGraph.h"
 #include "Link.h"
 #include "Sector.h"
 
@@ -22,81 +21,45 @@ class UTMDomainAbstract : public IDomainStateful {
     ~UTMDomainAbstract(void);
 
  protected:
-    IAgentManager* agents;
-    size_t n_sectors;
     typedef std::pair<size_t, size_t> edge;
+    IAgentManager* agents_;
+    size_t k_num_sectors_;
+    MultiGraph<LinkGraph> *high_graph_;
+    std::map<edge, size_t> *k_link_ids_;
+    std::vector<Link*> links_;
+    std::string k_reward_mode_;
+    matrix1d num_uavs_at_sector_;
+    std::string k_objective_mode_, k_agent_mode_, k_disposal_mode_;
+    std::vector<Sector*> sectors_;
+    matrix2d link_uavs_;    // The number of UAVs on each link, [step][linkID]
+    matrix2d sector_uavs_;  // The number of UAVs waiting at a sector,
+                           // [step][sectorID]
+    std::list<UAV*> uavs_;
+    std::map<int, std::list<UAV*> > uavs_done_;
+    std::map<int, std::list<int> > k_incoming_links_;
+
     void simulateStep(matrix2d agent_actions);
-    MultiGraph<LinkGraph> *highGraph;
-    std::map<edge, size_t> *linkIDs;
-    std::vector<Link*> links;
-    std::string reward_mode;
-    // records number of UAVs at each sector at current time step
-    matrix1d numUAVsAtSector;
-
- private:
-    static void get_airspace(YAML::Node configs);
-    void generate_new_airspace(std::string dir, size_t n_sectors, size_t xdim, size_t ydim);
-    void add_link(edge e, double flat_capacity);
-
-    std::string createExperimentDirectory(std::string config_file) {
-        return UTMFileNames::createExperimentDirectory(config_file);
-    }
-
-    // Modes
-    std::string objective_mode;
-    std::string agent_mode;
-
-    // Agents
-
-    // Moving parts
-    std::vector<Sector*> sectors;
-    std::vector<Fix*> fixes;
-
-
-    // Traffic
-    std::list<UAV*> UAVs;
-    virtual void getNewUAVTraffic();
-    virtual void absorbUAVTraffic();
-
-
-    // Graphs/search objects
-    RAGS* rags_map;
-
-    // Base function overloads
-    matrix2d get_states();
+    static bool uavReadyToMove(std::vector<Link*> L,
+        std::map<edge, size_t> *L_IDs, UAV *u);
+    void generateNewAirspace(std::string dir, size_t xdim, size_t ydim);
+    void addLink(edge e, double flat_capacity);
+    std::string createExperimentDirectory(std::string config_file);
+    virtual void getNewUavTraffic();
+    void getNewUavTraffic(int s);
+    virtual void absorbUavTraffic();
+    matrix2d getStates();
     matrix3d getTypeStates();
     void logStep();
-    // The number of UAVs on each link, [step][linkID]
-
-    matrix2d linkUAVs;
-    // The number of UAVs waiting at a sector, [step][sectorID]
-    matrix2d sectorUAVs;
-
     void exportStepsOfTeam(int team, std::string suffix);
-
     void exportSectorLocations(int fileID);
-    
-    // Different from children
     virtual matrix1d getPerformance();
     virtual matrix1d getRewards();
-    virtual void incrementUAVPath();
+    virtual void incrementUavPath();
     virtual void detectConflicts();
-
     virtual void getPathPlans();
-    virtual void getPathPlans(const std::list<UAV*> &new_UAVs);
+    virtual void getPathPlans(const std::list<UAV*> &new_uavs);
     virtual void reset();
-
-
-    //! Moves all it can in the list.s
-    // Those eligible to move but who are blocked are left after the function.
-    virtual void try_to_move(std::vector<UAV*> * eligible_to_move);
-
-
-    std::map<int, std::list<UAV*> > UAVs_done;
-    std::map<int, std::list<int> > incoming_links;
-
-    size_t get_next_link(UAV* u) {
-        return linkIDs->at(edge(u->get_cur_sector(), u->get_next_sector()));
-    }
+    virtual void tryToMove(std::vector<UAV*> * eligible_to_move);
+    size_t getNthLink(UAV* u, size_t n);
 };
-#endif  // DOMAINS_UTM_UTMDOMAINABSTRACT_H_
+#endif  // SRC_DOMAINS_UTM_UTMDOMAINABSTRACT_H_

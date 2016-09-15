@@ -10,39 +10,47 @@
 
 using std::list;
 
-UAV::UAV(int start_sector, int end_sector_set, UAVType my_type,
-    LinkGraph* highGraph) :
-    highGraph(highGraph), cur_sector(start_sector), end_sector(end_sector_set),
-    type_ID(size_t(my_type)) {
+UAV::UAV(int start_sector, int end_sector, UAVType my_type,
+    LinkGraph* high_graph) :
+    high_graph_(high_graph), cur_sector_(start_sector), end_sector_(end_sector),
+    k_type_id_(size_t(my_type)) {
     YAML::Node config = YAML::LoadFile("config.yaml");
     if (config["modes"]["types"].as<bool>()) {
-        speed
-            = std::next(config["types"].begin(), type_ID)->second.as<double>();
+        k_speed_
+            = std::next(config["types"].begin(), k_type_id_)->second.as<double>();
     } else {
-        speed = 1.0;
+        k_speed_ = 1.0;
     }
-    search_mode = config["modes"]["search"].as<std::string>();
+    k_search_mode_ = config["modes"]["search"].as<std::string>();
 
     static int calls = 0;
-    ID = calls++;
+    k_id_ = calls++;
+
+    // Get initial plan and update
+    planAbstractPath();
+}
+
+void UAV::reset(int start_sector, int end_sector) {
+    cur_sector_ = start_sector;
+    end_sector_ = end_sector;
 
     // Get initial plan and update
     planAbstractPath();
 }
 
 void UAV::planAbstractPath() {
-    sectors_touched.insert(cur_sector);
-    if (search_mode == "astar") {
-        high_path = Planning::astar(highGraph, cur_sector, end_sector);
+    //sectors_touched_.insert(cur_sector_);
+    if (k_search_mode_ == "astar") {
+        high_path_ = Planning::astar(high_graph_, cur_sector_, end_sector_);
     } else {
         // high_path = highGraph->at(type_ID)->rags(cur_s, end_s);
     }
 
-    if (high_path.empty()) {
+    if (high_path_.empty()) {
         printf("Path not found!");
         system("pause");
     }
 
     // Set variables
-    next_sector = get_next_sector();
+    next_sector_ = getNthSector(1);
 }

@@ -46,7 +46,8 @@ class NeuroEvo : public Evolution<NeuralNet> {
         return (x->getEvaluation() > y->getEvaluation());
     }
     Action get_action(State state);
-    Action get_action(std::vector<State> state);
+    Action
+        get_action(std::vector<State> state);
     void save(std::string fileout);
 
  private:

@@ -15,8 +15,8 @@ MultiagentNE::MultiagentNE(size_t num_agents, size_t num_inputs,
 }
 
 MultiagentNE::MultiagentNE(IDomainStateful* domain):
-    MultiagentNE(domain->get_n_agents(), 20, domain->get_nn_inputs(),
-            domain->get_nn_outputs()) {}
+    MultiagentNE(domain->getNumAgents(), domain->getNumNNInputs(), 20,
+            domain->getNumNNOutputs()) {}
 
 MultiagentNE::~MultiagentNE(void) {
     for (size_t i = 0; i < agents.size(); i++) {

@@ -1,53 +1,60 @@
-#pragma once
+// Copyright 2016 Carrie Rebhuhn
+#ifndef SRC_DOMAINS_UTM_SECTORAGENTMANAGER_H_
+#define SRC_DOMAINS_UTM_SECTORAGENTMANAGER_H_
 
-//! Class that manages sectors as agents
+#include <map>
+#include <list>
+#include <vector>
+
+//! Class that manages sectors_ as agents
 class SectorAgentManager : public IAgentManager {
-public:
-    SectorAgentManager(std::vector<Link*> links_set, size_t n_types_set,
-        std::vector<Sector*> sectors_set, size_t set_n_state_elements) :
-        IAgentManager(sectors_set.size(), set_n_state_elements), n_types(n_types_set),
-        links(links_set), sectors(sectors_set) {
-        for (Link* l : links) {
-            links_toward_sector[l->target].push_back(l);
+ public:
+    SectorAgentManager(std::vector<Link*> links, size_t num_types,
+        std::vector<Sector*> sectors, size_t num_state_elements) :
+        IAgentManager(sectors_.size(), num_state_elements),
+        k_num_types_(num_types), links_(links), sectors_(sectors) {
+        for (Link* l : links_) {
+           k_links_toward_sector_[l->k_target_].push_back(l);
         }
     }
     virtual ~SectorAgentManager() {}
 
-    std::vector<Link*> links;  // links in the entire system
-    std::map<int, std::vector<Link*> > links_toward_sector;
-    size_t n_types;
+    std::vector<Link*> links_;  // links_ in the entire system
+    std::map<int, std::vector<Link*> > k_links_toward_sector_;
+    size_t k_num_types_;
+    
+    matrix2d computeCongestionState(const std::list<UAV*>& uavs) {
+        size_t n_agents = sectors_.size();
+        matrix2d allStates = easymath::zeros(n_agents, k_num_state_elements_);
 
-    virtual matrix2d compute_congestion_state(std::list<UAV*>& UAVs) {
-        size_t n_agents = sectors.size();
-        matrix2d allStates = easymath::zeros(n_agents, n_state_elements);
-
-        for (UAV* u : UAVs) {
+        for (UAV* u : uavs) {
             std::vector<int> sector_congestion_count(n_agents, 0);
-            for (UAV* u : UAVs) {
-                sector_congestion_count[u->get_cur_sector()]++;
+            for (UAV* u : uavs) {
+                sector_congestion_count[u->getNthSector(0)]++;
             }
-            for (size_t i = 0; i < sectors.size(); i++) {
-                for (int conn : sectors[i]->connections) {
-                    easymath::XY dx = sectors[i]->xy - sectors[conn]->xy;
+            for (size_t i = 0; i < sectors_.size(); i++) {
+                for (int conn : sectors_[i]->k_connections_) {
+                    easymath::XY dx =
+                        sectors_[i]->k_loc_ - sectors_[conn]->k_loc_;
                     size_t dir = cardinal_direction(dx);
                     allStates[i][dir]
                         += sector_congestion_count[conn];
                 }
             }
         }
-        agentStates.push_back(allStates);
+        agent_states_.push_back(allStates);
         return allStates;
     }
 
-    virtual matrix2d actions2weights(matrix2d agent_actions) {
+    virtual matrix2d actionsToWeights(matrix2d agent_actions) {
         // Converts format of agent output to format of A* weights
 
-        matrix2d weights = easymath::zeros(n_types, links.size());
-        for (size_t i = 0; i < links.size(); i++) {
-            for (size_t j = 0; j < n_types; j++) {
+        matrix2d weights = easymath::zeros(k_num_types_, links_.size());
+        for (size_t i = 0; i < links_.size(); i++) {
+            for (size_t j = 0; j < k_num_types_; j++) {
                 // type / direction combo
-                size_t s = links[i]->source;
-                size_t d = j*(n_types - 1) + links[i]->cardinal_dir;
+                size_t s = links_[i]->k_source_;
+                size_t d = j*(k_num_types_ - 1) + links_[i]->k_cardinal_dir_;
 
                 // turns into type/edge combo
                 weights[j][i] = agent_actions[s][d] * 1000.0;
@@ -55,47 +62,49 @@ public:
         }
         return weights;
     }
-    std::vector<Sector*> sectors;
+    std::vector<Sector*> sectors_;
 
-    void add_delay(UAV* u) {
-        // double tt = links.at(u->next_link_ID)->predicted_traversal_time()[0];
-        // printf("at link %i: %fs to wait ", u->next_link_ID,tt);
-        // system("pause");
-        metrics.at(u->get_cur_sector()).local[u->get_type()]++;
+    void addDelay(UAV* u) {
+        metrics_.at(u->getNthSector(0)).local_[STATIC_TYPE]++;
     }
-    void add_downstream_delay_counterfactual(UAV* u) {
+    void addDownstreamDelayCounterfactual(UAV* u) {
         // remove the effects of the UAV for the counterfactual..
         // calculate the G that means that the UAV's impact is removed...
 
-        if (square_reward) {
+        printf("Error -- addDelayDownstreamCounterfactual called. This is disabled. Exiting.");
+        system("pause");
+        exit(1);
+        /*
+        if (k_square_reward_mode_) {
             // Nonfunctional, todo.
             printf("SQUARED TODO");
             exit(1);
         } else {
-            for (size_t i = 0; i < metrics.size(); i++) {
-                if (!u->sector_touched(i)) {
-                    metrics[i].G_minus_downstream[u->get_type()]++;
+            for (size_t i = 0; i < metrics_.size(); i++) {
+                if (!u->sectorTouched(i)) {
+                    metrics_[i].g_minus_downstream_[STATIC_TYPE]++;
                 } else {
                     continue;
                 }
             }
-        }
+        }*/
     }
 
-    void detect_conflicts() {
-        // all links going TO the sector are contribute to its conflict
-        for (size_t s = 0; s < sectors.size(); s++) {
-            std::vector<Link*> toward = links_toward_sector[s];
+    void detectConflicts() {
+        // all links_ going TO the sector are contribute to its conflict
+        for (size_t s = 0; s < sectors_.size(); s++) {
+            std::vector<Link*> toward = k_links_toward_sector_[s];
             for (size_t i = 0; i < toward.size(); i++) {
-                for (size_t j = 0; j < toward[i]->traffic.size(); j++) {
-                    int over_capacity = toward[i]->number_over_capacity(j);
+                for (size_t j = 0; j < toward[i]->traffic_.size(); j++) {
+                    int over_capacity = toward[i]->numOverCapacity(j);
                     if (over_capacity <= 0) continue;
-                    else if (square_reward)
-                        metrics[i].local[j] += over_capacity*over_capacity;
+                    else if (k_square_reward_mode_)
+                        metrics_[i].local_[j] += over_capacity*over_capacity;
                     else
-                        metrics[i].local[j] += over_capacity;
+                        metrics_[i].local_[j] += over_capacity;
                 }
             }
         }
     }
 };
+#endif  // SRC_DOMAINS_UTM_SECTORAGENTMANAGER_H_

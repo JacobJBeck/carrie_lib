@@ -9,46 +9,53 @@ using easymath::sum;
 using std::vector;
 using std::string;
 
+NeuralNet::Layer::Layer(size_t above, size_t below) :
+    num_nodes_above_(above), num_nodes_below_(below) {
+    // Populate Wbar with small random weights, including bias
+    w_bar_ = easymath::zeros(above + 1, below);
+
+    for (matrix1d &w : w_bar_)
+        std::generate(w.begin(), w.end(),
+            std::bind(randSetFanIn, above + 1.0));
+    w_ = w_bar_;
+    w_.pop_back();
+}
+
 double NeuralNet::randSetFanIn(double fan_in) {
-    // For initialization of the neural net weights
-    double rand_neg1to1 = rand(-1, 1)*0.1;
-    double scale_factor = 100.0;
-    return scale_factor*rand_neg1to1 / sqrt(fan_in);
+    return rand(-10, 10) / sqrt(fan_in);
 }
 
 void NeuralNet::mutate() {
     for (Layer &l : layers_) {
         for (matrix1d &wt_outer : l.w_bar_) {
+            double fan_in = static_cast<double>(l.num_nodes_above_);
             // #pragma parallel omp for
             for (double &w : wt_outer) {
-                double fan_in = static_cast<double>(l.num_nodes_above_);
-                w += randAddFanIn(fan_in);
+                w += randAddFanIn(fan_in, mut_rate_, mut_std_);
             }
         }
     }
 }
 
-double NeuralNet::randAddFanIn(double fan_in) {
+double NeuralNet::randAddFanIn(double fan_in, double mut_rate, double mut_std) {
     // Adds random amount mutRate_% of the time,
-    // amount based on fan_in and mutstd
-    if (rand(0, 1) > mutRate_) {
+    // amount based on fan_in and mut_std
+    if (rand(0, 1) > mut_rate) {
         return 0.0;
     } else {
-        // FOR MUTATION
         std::default_random_engine generator;
         generator.seed(static_cast<size_t>(time(NULL)));
-        std::normal_distribution<double> distribution(0.0, mutStd);
+        std::normal_distribution<double> distribution(0.0, mut_std);
+        // Note: divide by fan_in later
         return distribution(generator);
     }
 }
 
 NeuralNet::NeuralNet(size_t num_inputs, size_t num_hidden, size_t num_outputs,
-    double gamma): gamma_(gamma),
-    evaluation_(0), mutRate_(0.5), mutStd(1.0) {
+    double gamma): gamma_(gamma), evaluation_(0), mut_rate_(0.5), mut_std_(1.0) {
     layers_.push_back(Layer(num_inputs, num_hidden));
     layers_.push_back(Layer(num_hidden, num_outputs));
-
-    setMatrixMultiplicationStorage();
+    reserveMultBuffer();
 }
 
 void NeuralNet::load(string filein) {
@@ -57,16 +64,13 @@ void NeuralNet::load(string filein) {
 }
 
 void NeuralNet::save(string fileout) {
-    matrix2d outmatrix(2);
-    outmatrix[0].push_back(layers_[0].num_nodes_above_);
+    matrix2d out(2);
+    out[0] = getTopology();
     for (Layer l : layers_) {
-        outmatrix[0].push_back(static_cast<double>(l.num_nodes_below_));
-        for (auto wt_outer : l.w_bar_) {
-            outmatrix[1].insert(outmatrix[1].end(), wt_outer.begin(),
-                wt_outer.end());
-        }
+        matrix1d flat_wbar = flatten(l.w_bar_);
+        out[1].insert(out[1].end(), flat_wbar.begin(), flat_wbar.end());
     }
-    FileOut::print_vector(outmatrix, fileout);
+    FileOut::print_vector(out, fileout);
 }
 
 void NeuralNet::load(matrix1d node_info, matrix1d wt_info) {
@@ -87,30 +91,34 @@ void NeuralNet::load(matrix1d node_info, matrix1d wt_info) {
         l.w_ = l.w_bar_;
         l.w_.pop_back();
     }
-    setMatrixMultiplicationStorage();
+    reserveMultBuffer();
 }
 
-void NeuralNet::setMatrixMultiplicationStorage() {
-    matrix_multiplication_storage = matrix2d();
+void NeuralNet::reserveMultBuffer() {
     for (auto l : layers_)
-        matrix_multiplication_storage.push_back(matrix1d(l.num_nodes_above_));
-    matrix_multiplication_storage.push_back
-        (matrix1d(layers_.back().num_nodes_below_));
+        mult_buffer_.reserve(l.num_nodes_below_);
+}
+
+matrix1d NeuralNet::getTopology() {
+    matrix1d topology(1);
+    topology[0] = layers_.front().num_nodes_above_;
+    for (Layer l : layers_)
+        topology.push_back(static_cast<double>(l.num_nodes_below_));
+    return topology;
 }
 
 matrix1d NeuralNet::predictContinuous(matrix1d observations) {
-    observations.push_back(1.0);
-    matrixMultiply(observations, layers_[0].w_bar_,
-        &matrix_multiplication_storage[0]);
-    sigmoid(&matrix_multiplication_storage[0]);
+    observations.push_back(1.0);    // Add bias
+    matrix2d w1 = layers_[0].w_bar_;    // Get weight layer 1
+    matrix1d hidden_values(w1[0].size());
+    matrixMultiply(observations, w1, &hidden_values);
+    sigmoid(&hidden_values);
+    hidden_values.push_back(1.0);
+    matrix2d w2 = layers_[1].w_bar_;
+    matrix1d output_values(w2[0].size());
+    matrixMultiply(hidden_values, w2, &output_values);
 
-    for (size_t i = 1; i < layers_.size(); i++) {
-        matrix_multiplication_storage[i - 1].back() = 1.0;
-        matrixMultiply(matrix_multiplication_storage[i - 1],
-            layers_[i].w_bar_, &matrix_multiplication_storage[i]);
-        sigmoid(&matrix_multiplication_storage[i]);
-    }
-    return matrix_multiplication_storage.back();
+    return output_values;
 }
 
 matrix2d NeuralNet::matrixMultiply(const matrix2d &A, const matrix2d &B) {
@@ -214,4 +222,11 @@ void NeuralNet::cmp_int_fatal(size_t a, size_t b) {
         system("pause");
         exit(1);
     }
+}
+
+matrix1d NeuralNet::flatten(const matrix2d &A) {
+    matrix1d B;
+    for (auto a : A)
+        B.insert(B.end(), a.begin(), a.end());
+    return B;
 }

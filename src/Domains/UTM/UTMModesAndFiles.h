@@ -10,12 +10,12 @@ typedef size_t UAVType;
 
 class UTMModes {
  public:
-    static size_t get_n_types(const YAML::Node& config) {
+    static size_t getNumTypes(const YAML::Node& config) {
         if (!config["modes"]["types"].as<bool>()) return 1;
         return std::distance(config["types"].begin(), config["types"].end());
     }
 
-    static size_t get_n_agents(const YAML::Node& config, size_t n_links) {
+    static size_t getNumAgents(const YAML::Node& config, size_t n_links) {
         std::string agent_mode = config["modes"]["agent"].as<std::string>();
         try {
             if (agent_mode == "sector") {
@@ -32,7 +32,7 @@ class UTMModes {
         }
     }
 
-    static size_t get_n_state_elements(const YAML::Node& config) {
+    static size_t getNumStateElements(const YAML::Node& config) {
         std::string state_mode = config["modes"]["state"].as<std::string>();
         try {
             if (state_mode == "cardinal")
@@ -47,8 +47,8 @@ class UTMModes {
             exit(1);
         }
     }
-    static size_t get_n_control_elements(const YAML::Node& config) {
-        return get_n_state_elements(config)*get_n_types(config);
+    static size_t getNumControlElements(const YAML::Node& config) {
+        return getNumStateElements(config)*getNumTypes(config);
     }
 };
 
@@ -58,7 +58,7 @@ class UTMFileNames {
         std::string n_sectors
             = config["constants"]["sectors"].as<std::string>();
         std::string dir_path = "Domains/" + n_sectors + "_Sectors/"
-            + domain_num(config);
+            + domainNum(config);
 
         FileOut::mkdir_p(dir_path);
         return dir_path;
@@ -73,7 +73,7 @@ class UTMFileNames {
         std::string gen_rate
             = config["constants"]["generation_rate"].as<std::string>();
         std::string n_steps = config["constants"]["steps"].as<std::string>();
-        std::string n_types = std::to_string(UTMModes::get_n_types(config));
+        std::string n_types = std::to_string(UTMModes::getNumTypes(config));
         std::string reward_mode = config["modes"]["reward"].as<std::string>();
         std::string alpha = config["constants"]["alpha"].as<std::string>();
 
@@ -85,7 +85,7 @@ class UTMFileNames {
             + n_types + "_Types/"
             + reward_mode + "_Reward/"
             + alpha + "_alpha/"
-            + domain_num(config);
+            + domainNum(config);
 
         // Create new directory
         FileOut::mkdir_p(dir_path);
@@ -94,7 +94,7 @@ class UTMFileNames {
     }
 
  private:
-    static std::string domain_num(const YAML::Node& config) {
+    static std::string domainNum(const YAML::Node& config) {
         if (!config["modes"]["numbered_domain"].as<bool>())
             return "";
         std::string domain_num =

@@ -6,12 +6,8 @@
 #include <vector>
 
 namespace easystl {
-//! Clears using the swap idiom
-/*template <class Container>
-void clear(Container *q) {
-    Container empty;
-    std::swap(*q, empty);
-}*/
+
+enum {ELEMENT_NOT_FOUND=200};
 
 template <class ptr>
 void clear(std::vector<ptr*> &v) {
@@ -37,7 +33,11 @@ void remove_erase_if(Container* stl, UnaryPredicate pred) {
 
 template <class Container, class T>
 void remove_element(Container* stl, T el) {
-    stl->erase(std::find(stl->begin(), stl->end(), el));
+    if (stl->empty()) throw ELEMENT_NOT_FOUND;
+    auto it = std::find(stl->begin(), stl->end(), el);
+    if (it != stl->end())
+        stl->erase(it);
+    else throw ELEMENT_NOT_FOUND;
 }
 }  // namespace easystl
 #endif  // STL_EASYSTL_H_

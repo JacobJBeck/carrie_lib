@@ -1,6 +1,6 @@
 // Copyright 2016 Carrie Rebhuhn
-#ifndef DOMAINS_UTM_FIX_H_
-#define DOMAINS_UTM_FIX_H_
+#ifndef SRC_DOMAINS_UTM_FIX_H_
+#define SRC_DOMAINS_UTM_FIX_H_
 
 // STL includes
 #include <list>
@@ -8,36 +8,42 @@
 #include <utility>
 
 // Library includes
+
 #include "Planning/include/MultiGraph.h"
 #include "UAV.h"
 
 class Fix {
  public:
     typedef std::pair<size_t, size_t> edge;
-    Fix(easymath::XY loc, size_t ID, MultiGraph<LinkGraph>* highGraph,
-        std::vector<easymath::XY> dest_locs, size_t n_types_set);
+    Fix(easymath::XY loc, size_t id, MultiGraph<LinkGraph>* high_graph,
+        std::vector<easymath::XY> dest_locs, size_t num_types);
 
 
     virtual ~Fix() {}
-    virtual UAV* generate_UAV(size_t step);
-
-    void reset() {
-        generate_UAV(true);
-    }
-
-    virtual UAV* generate_UAV(bool reset = false);
+    virtual UAV* generateUav(size_t step);
+    void reset() { generateUav(true); }
+    virtual UAV* generateUav(bool reset = false);
 
  protected:
-    bool should_generate_UAV(size_t step);
+    bool shouldGenerateUav(size_t step);
+public:
+    void resetUav(UAV* u) {
+        auto e = high_graph_->at()->get_locations();
+        size_t index;
+        do {
+            index = rand() % e.size();
+        } while (index == k_id_);
 
+        u->reset(k_id_, index);
+    }
     // A pointer to a list of UAVs that have arrived at the fix as their destination ~B
-    std::list<UAV*> * UAVs_stationed;
-    size_t ID, genrate, n_types, n_uavs;
-    easymath::XY loc;
-    MultiGraph<LinkGraph>* highGraph;
-    std::string traffic_mode, destination_mode;
-    double pgen;
-    std::vector<easymath::XY> destination_locs;
+    std::list<UAV*> * uavs_stationed_;
+    size_t k_id_, k_gen_rate_, k_num_types_;
+    easymath::XY k_loc_;
+    MultiGraph<LinkGraph>* high_graph_;
+    std::string k_traffic_mode_, k_destination_mode_;
+    double k_gen_prob_;
+    std::vector<easymath::XY> k_destination_locs_;
 };
-#endif  // DOMAINS_UTM_FIX_H_
+#endif  // SRC_DOMAINS_UTM_FIX_H_
 

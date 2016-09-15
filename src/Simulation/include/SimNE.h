@@ -27,13 +27,13 @@ class SimNE : public ISimulator {
     virtual void runExperiment();
     virtual void epoch(int ep);
 
-    void epoch_difference(int ep);
-    void epoch_difference_replay(int ep);
-    void run_simulation(bool log, int suppressed_agent = -1);
-    void run_simulation(bool log, matrix3d& actions_recorded, int suppressed_agent = -1);
+    void epochDifference(int ep);
+    void epochDifferenceReplay(int ep);
+    void runSimulation(bool log, int suppressed_agent = -1);
+    void runSimulation(bool log, matrix3d& actions_recorded, int suppressed_agent = -1);
 
     //! Gets actions based on current state: OVERLOAD FOR TYPES
-    virtual std::vector<Action> get_actions();
+    virtual std::vector<Action> getActions();
     void runExperimentDifference();
     void runExperimentDifferenceReplay();
     struct accounting {

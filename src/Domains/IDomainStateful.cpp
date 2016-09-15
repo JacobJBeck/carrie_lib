@@ -1,18 +1,18 @@
 // Copyright 2016 Carrie Rebhuhn
 #include "IDomainStateful.h"
-#include "yaml-cpp\yaml.h"
+#include "yaml-cpp/yaml.h"
 #include "UTM/UTMModesAndFiles.h"
 
 IDomainStateful::IDomainStateful(std::string config_file) :
-    cur_step(new size_t(0)) {
+    cur_step_(new size_t(0)) {
     YAML::Node configs = YAML::LoadFile(config_file);
-    n_steps = configs["constants"]["steps"].as<size_t>();
-    n_control_elements = UTMModes::get_n_control_elements(configs);
-    n_state_elements = UTMModes::get_n_state_elements(configs);
-    n_types = UTMModes::get_n_types(configs);
+    k_num_steps_ = configs["constants"]["steps"].as<size_t>();
+    k_num_control_elements_ = UTMModes::getNumControlElements(configs);
+    k_num_state_elements_ = UTMModes::getNumStateElements(configs);
+    k_num_types_ = UTMModes::getNumTypes(configs);
 }
 
 
 IDomainStateful::~IDomainStateful(void) {
-    delete cur_step;
+    delete cur_step_;
 }
