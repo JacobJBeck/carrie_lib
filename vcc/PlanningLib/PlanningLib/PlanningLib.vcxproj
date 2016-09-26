@@ -90,7 +90,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(HOMEPATH)\Source\Repos\external\boost_1_60_0;$(HOMEPATH)\Source\Repos\carrie_lib\src;$(HOMEPATH)\Source\Repos\carrie_lib\src\Planning\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Carrie\Source\Repos\boost\boost_1_57_0;$(HOMEPATH)\Source\Repos\boost_1_60_0;$(HOMEPATH)\Source\Repos\carrie_lib\src;$(HOMEPATH)\Source\Repos\carrie_lib\src\Planning\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -4,3 +4,10 @@
 .sdf
 /Debug/
 .suo
+*.lib
+*.tlog
+*.obj
+*.log
+*.pdb
+*.idb
+*.db
