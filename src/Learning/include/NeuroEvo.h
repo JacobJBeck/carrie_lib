@@ -21,18 +21,14 @@ class NeuroEvo : public Evolution<NeuralNet> {
         size_t num_output): k_population_size_(population_size) {
         for (size_t i = 0; i <population_size; i++) {
             NeuralNet* nn = new NeuralNet(num_input, num_hidden, num_output);
-            population.push_back(nn);
+            population_.push_back(nn);
         }
-        pop_member_active = population.begin();
+        pop_member_active_ = population_.begin();
     }
     ~NeuroEvo(void) { deletePopulation(); }
     void deep_copy(const NeuroEvo &NE);
     void deletePopulation();
-
-    //! Class variables
-    std::list<NeuralNet*> population;
-    std::list<NeuralNet*>::iterator pop_member_active;
-
+    
     //! Mutators
     void generate_new_members();
     bool select_new_member();

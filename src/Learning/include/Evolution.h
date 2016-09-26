@@ -12,42 +12,40 @@ class Evolution : public IAgent<Policy> {
     //! Life cycle
     Evolution() {}
     Evolution(const Evolution &E) {
-        m_population = new Population();
-        for (Policy* p : E.m_population)
-            m_population->push_back(new Policy(*p));
-        PopulationMember* m_pop_member_active
-            = new PopulationMember(m_population->begin());
+        population_ = new Population();
+        for (Policy* p : E.population)
+            population_->push_back(new Policy(*p));
+        PopulationMember* pop_member_active_
+            = new PopulationMember(population_->begin());
     }
     ~Evolution() {
-        delete m_pop_member_active;
-        easystl::clear(*m_population);
-        delete m_population;
+        easystl::clear(population_);
     }
 
     //! Mutators
     virtual void generate_new_members() = 0;
     virtual void activate_next_member() {
-        (*m_pop_member_active)++;
-        this->set_policy(**m_pop_member_active);
+        pop_member_active_++;
+        this->set_policy(*pop_member_active_);
     }
     virtual void select_survivors() = 0;
     void update(const Reward &rwd) { this->policy->update(rwd); }
     void set_first_member() {
-        *m_pop_member_active = this->population->begin();
-        this->policy = **m_pop_member_active();
+        pop_member_active_ = this->population_->begin();
+        this->policy = *pop_member_active();
     }
 
 
     //! Accessor
     bool at_last_member() const {
-        return *this->pop_member_active == this->population->end();
+        return *this->pop_member_active_ == this->population_->end();
     }
 
- private:
+ protected:
      typedef std::list<Policy*> Population;
      typedef typename std::list<Policy*>::iterator PopulationMember;
-     Population* m_population;
-     PopulationMember* m_pop_member_active;
+     Population population_;
+     PopulationMember pop_member_active_;
 };
 
 #endif  // SINGLEAGENT_EVOLUTION_H_
