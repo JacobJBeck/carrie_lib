@@ -5,7 +5,7 @@
 #include <list>
 #include <vector>
 
-#include "IAgentManager.h"
+#include "IAgentBody.h"
 
 class Link {
  public:
@@ -55,12 +55,12 @@ class Link {
 * qualitative assessment of behavior.
 */
 
-class LinkAgentManager : public IAgentManager {
+class LinkAgent : public IAgentBody {
  public:
     // The agent that communicates with others
-    LinkAgentManager(size_t num_edges,
+    LinkAgent(size_t num_edges,
         std::vector<Link*> links, size_t num_state_elements);
-    virtual ~LinkAgentManager() {}
+    virtual ~LinkAgent() {}
     // weights are ntypesxnagents
 
     const size_t k_num_edges_;
@@ -85,11 +85,6 @@ class LinkAgentManager : public IAgentManager {
         return k_link_ids_[u->getNthEdge(n)];
     }
 
-    /**
-    * Adds to the delay for the agent assigned to that link.
-    * Agent reward metrics and link function are kept separate.
-    */
-    virtual void addDelay(UAV* u);
     matrix2d computeCongestionState(const std::list<UAV*>& uavs) {
         size_t num_agents = links_.size();
         matrix2d all_states = easymath::zeros(num_agents,
@@ -99,8 +94,5 @@ class LinkAgentManager : public IAgentManager {
         agent_states_.push_back(all_states);
         return all_states;
     }
-    void addDownstreamDelayCounterfactual(UAV* u);
-
-    void detectConflicts();
 };
 #endif  // SRC_DOMAINS_UTM_LINK_H_

@@ -192,10 +192,6 @@ void SimNE::epoch(int ep) {
 
     reward_log.push_back(accounts.best_run);
     metric_log.push_back(accounts.best_run_performance);
-    if (ep == 0)
-        domain->exportStepsOfTeam(accounts.best_perf_idx, "untrained");
-    if (ep == n_epochs - 1)
-        domain->exportStepsOfTeam(accounts.best_perf_idx, "trained");
 }
 
 vector<State> SimNE::getActions() {

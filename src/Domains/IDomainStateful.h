@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "Domains/IReward.h"
+#include "FileIO\include\fileout.h"
 
 typedef std::vector<double> matrix1d;
 typedef std::vector<matrix1d> matrix2d;
@@ -12,7 +13,7 @@ typedef std::vector<matrix2d> matrix3d;
 
 class IDomainStateful {
  public:
-    explicit IDomainStateful(std::string config_file);
+    explicit IDomainStateful();
     virtual ~IDomainStateful(void);
 
     // Returns the state vector for the set of agents, [AGENTID][STATEELEMENT]
@@ -31,8 +32,8 @@ class IDomainStateful {
     virtual std::string createExperimentDirectory(std::string config_file) = 0;
 
     size_t getNumAgents() const { return k_num_agents_; }
-    size_t getNumNNInputs() const { return k_num_state_elements_; }
-    size_t getNumNNOutputs() const { return k_num_control_elements_; }
+    size_t getNumNNInputs() const { return k_num_states_; }
+    size_t getNumNNOutputs() const { return k_num_actions_; }
     size_t getStep() const { return *cur_step_; }
     bool step() {
         if (*cur_step_ >= k_num_steps_)
@@ -42,7 +43,7 @@ class IDomainStateful {
     }
 
  protected:
-    size_t * cur_step_, k_num_state_elements_, k_num_control_elements_,
+    size_t * cur_step_, k_num_states_, k_num_actions_,
         k_num_steps_, k_num_agents_;   // agents determined later!
 };
 

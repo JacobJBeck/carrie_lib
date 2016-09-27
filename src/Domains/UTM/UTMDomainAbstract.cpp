@@ -11,7 +11,7 @@
 #include "FileIO/include/FileIn.h"
 #include "Math/include/easymath.h"
 #include "STL/include/easystl.h"
-#include "Domains/UTM/sectoragentmanager.h"
+#include "Domains/UTM/SectorAgent.h"
 
 using std::string;
 using std::list;
@@ -28,7 +28,7 @@ using easymath::zeros;
 using easystl::remove_erase_if;
 
 UTMDomainAbstract::UTMDomainAbstract(string config_file, bool) :
-    IDomainStateful(config_file) {
+    IDomainStateful() {
     printf("Creating a UTMDomainAbstract object.\n");
 
     // Load the configurations
@@ -59,16 +59,18 @@ UTMDomainAbstract::UTMDomainAbstract(string config_file, bool) :
     for (edge e : edges) addLink(e, flat_capacity);
 
     k_agent_mode_ = configs["modes"]["agent"].as<string>();
-    k_num_control_elements_ = UTMModes::getNumControlElements(configs);
-    k_num_state_elements_ = UTMModes::getNumStateElements(configs);
-    if (k_agent_mode_ == "sector")
-        agents_ = new SectorAgentManager(links_, sectors_,
-            k_num_state_elements_);
-    else
-        agents_ = new LinkAgentManager(links_.size(), links_,
-            k_num_state_elements_);
-
-    k_num_agents_ = UTMModes::getNumAgents(configs, links_.size());
+    if (configs["modes"]["state"].as<string>() == "single") {
+        k_num_states_ = 1;
+    } else {
+        k_num_states_ = 4;
+    }
+    if (k_agent_mode_ == "sector") {
+        agents_ = new SectorAgent(links_, sectors_, k_num_states_);
+        k_num_agents_ = sectors_.size();
+    } else {
+        agents_ = new LinkAgent(links_.size(), links_, k_num_states_);
+        k_num_agents_ = links_.size();
+    }
     num_uavs_at_sector_ = zeros(k_num_sectors_);
 
     k_objective_mode_ = configs["modes"]["objective"].as<string>();
@@ -140,11 +142,15 @@ UTMDomainAbstract::~UTMDomainAbstract(void) {
 }
 
 matrix1d UTMDomainAbstract::getPerformance() {
-    return agents_->performance();
+    // TODO
+    exit(1);
+    return matrix1d();
 }
 
 matrix1d UTMDomainAbstract::getRewards() {
-    return agents_->reward();
+    // TODO
+    exit(1);
+    return matrix1d();
 }
 
 
@@ -172,19 +178,10 @@ void UTMDomainAbstract::incrementUavPath() {
         // printf("%i uavs_ delayed. \n",eligible.size());
 
         for (UAV* u : eligible) {
-            // adds delay for each eligible UAV not able to move
-            agents_->addDelay(u);
+            // TODO delay added here to reward
 
             // Add 1 to the sector that the UAV is trying to move from
             num_uavs_at_sector_[u->getNthSector(1)]++;
-
-            // counterfactuals
-            if (k_reward_mode_ == "difference_avg")
-                agents_->addAverageCounterfactual();
-            else if (k_reward_mode_ == "difference_downstream")
-                agents_->addDownstreamDelayCounterfactual(u);
-            else
-                continue;
         }
     }
 }
@@ -271,113 +268,7 @@ void UTMDomainAbstract::exportSectorLocations(int fileID) {
 }
 
 void UTMDomainAbstract::detectConflicts() {
-    agents_->detectConflicts();
-    // CURRENTLY CONFLICT DISABLED
-
-
-    // if (params->_agent_defn_mode==UTMModes::SECTOR){
-    // matrix1d G_c(sectors_.size());
-    // }
-
-    // count the over capacity here
-
-    // Calculate the amount OVER or UNDER the given capacity
-    // COUNT UP SECTOR CAPACITIES
-
-    // matrix2d cap = sectorCapacity;
-
-    // Global reward sectors_
-    /*for (UAV* u: uavs_)
-        if ((cap[u->get_cur_sector()][u->get_type()]--)<0)
-            conflict_count++;
-
-    // D average sectors_
-    cap = sectorCapacity;
-    for (UAV* u: uavs_)
-        if ((cap[u->get_cur_sector()][u->get_type()]--)<0)
-            for (int j=0; j<k_num_types_; j++)
-                sectors_->at(u->get_cur_sector()).conflicts[j]++; // D avg
-
-
-    // D downstream sectors_
-    cap = sectorCapacity;
-    for (UAV* u: uavs_)
-        if ((cap[u->get_cur_sector()][u->get_type()]--)<0)
-            for (uint i=0; i<sectors_->size(); i++)
-                if (u->sectors_touched.find(i)==u->sectors_touched.end())
-                    conflict_minus_downstream[i]++;	/// D downstream
-
-    // D reallocation sectors_
-    for (uint i=0; i<sectors_->size(); i++){
-        matrix2d cap_i = cap;
-        matrix1d occ_i = cap[i];
-        cap_i[i] = matrix1d(cap_i[0].size(),0);
-
-        for (int j=0; j<k_num_types_; j++){
-            while (occ_i[j]<0){ // ONLY TAKE OUT THE OVER CAPACITY--ASSUME PERFECT ROUTING?
-                // add back up to capacity
-                occ_i[j]++;
-
-                int alt;
-                do {
-                    alt = rand()%n_agents;
-                } while(alt==i);
-                cap_i[alt][j]--;
-            }
-        }
-        for (uint j=0; j<cap_i.size(); j++)
-            for (uint k=0; k<cap_i[j].size(); k++)
-                if (cap_i[j][k]<0)
-                    conflict_random_reallocation[i]++;
-    }
-
-    // Global reward links_
-    for (Link* l: links_)
-        conflict_count += l->get_conflicts();
-
-    // D average links_
-/*	cap = *linkCapacity;
-    for (UAV* u: uavs_)
-        if ((cap[u->get_cur_link()][u->get_type()]--)<0)
-            for (int j=0; j<k_num_types_; j++)
-                linkConflicts[u->get_cur_link()][j]++; // D avg
-    for (int i=0; i<n_links; i++)
-        linkSteps[i]++; // steps of conflict accounting (for average counterfactual)
-
-
-    // D downstream sectors_
-    cap = *linkCapacity;
-    for (UAV* u: uavs_)
-        if ((cap[u->get_cur_link()][u->type_ID]--)<0)
-            for (int i=0; i<n_links; i++)
-                if (u->links_touched.find(i)==u->links_touched.end())
-                    link_conflict_minus_downstream[i]++;	/// D downstream
-                    */
-                    // D reallocation sectors_
-                    /*
-                    for (int i=0; i<n_links; i++){
-                        matrix2d cap_i = cap;
-                        matrix1d occ_i = cap[i];
-                        cap_i[i] = matrix1d(cap_i[0].size(),0);
-
-                        for (int j=0; j<k_num_types_; j++){
-                            while (occ_i[j]<0){ // ONLY TAKE OUT THE OVER CAPACITY--ASSUME PERFECT ROUTING?
-                                // add back up to capacity
-                                occ_i[j]++;
-
-                                int alt;
-                                do {
-                                    alt = rand()%n_links;
-                                } while(alt==i);
-                                cap_i[alt][j]--;
-                            }
-                        }
-                        for (uint j=0; j<cap_i.size(); j++)
-                            for (uint k=0; k<cap_i[j].size(); k++)
-                                if (cap_i[j][k]<0)
-                                    link_conflict_(om_reallocation[i]++;
-                    }
-                    */
+    // TODO
 }
 
 void UTMDomainAbstract::getPathPlans() {

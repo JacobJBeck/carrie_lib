@@ -97,17 +97,17 @@ void Link::reset() {
     traffic_ = list<UAV*>();
 }
 
-LinkAgentManager::LinkAgentManager(size_t num_edges,
+LinkAgent::LinkAgent(size_t num_edges,
     vector<Link*> links, size_t num_state_elements) :
     k_num_edges_(num_edges),
-    IAgentManager(links.size(), num_state_elements), links_(links)
+    IAgentBody(links.size(), num_state_elements), links_(links)
 {
     for (size_t i = 0; i < links.size(); i++) {
         k_link_ids_.insert(std::make_pair(std::make_pair(links[i]->k_source_, links[i]->k_target_), i));
     }
 }
 
-matrix1d LinkAgentManager::actionsToWeights(matrix2d agent_actions) {
+matrix1d LinkAgent::actionsToWeights(matrix2d agent_actions) {
     matrix1d weights = easymath::zeros(k_num_edges_);
 
     for (size_t i = 0; i < k_num_edges_; i++) {
@@ -115,24 +115,4 @@ matrix1d LinkAgentManager::actionsToWeights(matrix2d agent_actions) {
         weights[i] = predicted + agent_actions[i][0] * k_alpha_; // only one action
     }
     return weights;
-}
-
-void LinkAgentManager::addDelay(UAV* u) {
-    metrics_.at(getNthLink(u,0)).local_++;
-}
-
-void LinkAgentManager::addDownstreamDelayCounterfactual(UAV* u) {
-}
-
-void LinkAgentManager::detectConflicts() {
-    for (size_t i = 0; i < links_.size(); i++) {
-        int over_capacity = links_[i]->numOverCapacity();
-        if (over_capacity <= 0)
-            continue;  // no congestion
-        else if (k_square_reward_mode_)
-            metrics_[i].local_ += over_capacity*over_capacity;
-        else
-            metrics_[i].local_ += over_capacity;
-
-    }
 }
