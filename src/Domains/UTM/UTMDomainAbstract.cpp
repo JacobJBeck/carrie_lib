@@ -10,6 +10,7 @@
 #include "FileIO/include/FileOut.h"
 #include "FileIO/include/FileIn.h"
 #include "Math/include/easymath.h"
+#include "STL/include/easystl.h"
 #include "Domains/UTM/sectoragentmanager.h"
 
 using std::string;
@@ -24,6 +25,7 @@ using easyio::read_pairs;
 using easyio::read2;
 using easymath::XY;
 using easymath::zeros;
+using easystl::remove_erase_if;
 
 UTMDomainAbstract::UTMDomainAbstract(string config_file, bool) :
     IDomainStateful(config_file) {
@@ -49,8 +51,7 @@ UTMDomainAbstract::UTMDomainAbstract(string config_file, bool) :
     vector<edge> edges = read_pairs<edge>(efile);
     vector<XY> locs = read_pairs<XY>(vfile);
 
-    LinkGraph* base = new LinkGraph(locs, edges);
-    high_graph_ = new MultiGraph<LinkGraph>(k_num_types_, base);
+    high_graph_ = new LinkGraph(locs, edges);
 
     // Link construction
     double flat_capacity = configs["constants"]["capacity"].as<double>();
@@ -61,10 +62,10 @@ UTMDomainAbstract::UTMDomainAbstract(string config_file, bool) :
     k_num_control_elements_ = UTMModes::getNumControlElements(configs);
     k_num_state_elements_ = UTMModes::getNumStateElements(configs);
     if (k_agent_mode_ == "sector")
-        agents_ = new SectorAgentManager(links_, k_num_types_, sectors_,
+        agents_ = new SectorAgentManager(links_, sectors_,
             k_num_state_elements_);
     else
-        agents_ = new LinkAgentManager(links_.size(), k_num_types_, links_,
+        agents_ = new LinkAgentManager(links_.size(), links_,
             k_num_state_elements_);
 
     k_num_agents_ = UTMModes::getNumAgents(configs, links_.size());
@@ -78,7 +79,7 @@ void UTMDomainAbstract::addLink(UTMDomainAbstract::edge e,
     double flat_capacity) {
     size_t source = e.first;   // membership of origin of edge
     size_t target = e.second;  // membership of connected node
-    vector<XY> locs = high_graph_->at()->get_locations();
+    vector<XY> locs = high_graph_->get_locations();
     XY s_loc = locs[source];
     XY t_loc = locs[target];
     size_t cardinal_dir = cardinal_direction(s_loc - t_loc);
@@ -87,8 +88,7 @@ void UTMDomainAbstract::addLink(UTMDomainAbstract::edge e,
         dist = 1;
     links_.push_back(
         new Link(links_.size(), source, target, dist,
-            vector<size_t>(k_num_types_, static_cast<size_t>(flat_capacity)),
-            cardinal_dir, k_num_types_));
+            static_cast<size_t>(flat_capacity), cardinal_dir));
     k_link_ids_->insert(make_pair(e, links_.size() - 1));
 
     k_incoming_links_[target].push_back(source);
@@ -97,24 +97,22 @@ void UTMDomainAbstract::addLink(UTMDomainAbstract::edge e,
 void UTMDomainAbstract::generateNewAirspace(string domain_dir, size_t xdim,
     size_t ydim) {
     // Generate a new airspace
-    LinkGraph* base = new LinkGraph(k_num_sectors_, xdim, ydim);
-    MultiGraph<LinkGraph>(k_num_types_, base).at()->print_graph(domain_dir);
+    LinkGraph(k_num_sectors_, xdim, ydim).print_graph(domain_dir);
 }
 
 UTMDomainAbstract::UTMDomainAbstract(string config_file) :
     UTMDomainAbstract(config_file, true) {
     // Sector/Fix  construction
-    vector<edge> edges = high_graph_->at()->get_edges();
+    vector<edge> edges = high_graph_->get_edges();
     vector<vector<size_t> > connections(k_num_sectors_);
     for (edge e : edges)
         connections[e.first].push_back(e.second);
 
-    vector<XY> sector_locs = high_graph_->at()->get_locations();
+    vector<XY> sector_locs = high_graph_->get_locations();
     for (size_t i = 0; i < k_num_sectors_; i++) {
-        Sector* s = new Sector(sector_locs[i], i, connections[i], sector_locs,
-            k_num_types_);
+        Sector* s = new Sector(sector_locs[i], i, connections[i], sector_locs);
         s->generation_pt_ = new Fix(s->k_loc_, s->k_id_, high_graph_,
-            sector_locs, k_num_types_);
+            sector_locs);
         sectors_.push_back(s);
     }
 
@@ -160,9 +158,7 @@ void UTMDomainAbstract::incrementUavPath() {
                 return true;
             }
         } else {
-            // TYPE IMPLEMENTATION
-            for (size_t i = 0; i <= STATIC_TYPE+1; i++)
-                u->decrementWait();
+            u->decrementWait();
             return false;
         }
     });
@@ -199,25 +195,12 @@ void UTMDomainAbstract::tryToMove(vector<UAV*> * eligible_to_move) {
     size_t el_size;
     do {
         el_size = eligible_to_move->size();
-        easystl::remove_erase_if(eligible_to_move,
+        remove_erase_if(eligible_to_move,
             bind(uavReadyToMove, links_, k_link_ids_, _1));
     } while (el_size != eligible_to_move->size());
 }
 
 matrix2d UTMDomainAbstract::getStates() {
-    /* "NORMAL POLARITY" state
-    for (UAV* u : uavs_){
-        allStates[getSector(u->loc)][u->get_travel_direction()]+=1.0; // Adds the UAV impact on the state
-    }
-    */
-
-    // REVERSED POLARITY STATE
-    /*for (UAV* u : uavs_){
-        // COUNT THE UAV ONLY IF IT HAS A NEXT SECTOR IT'S GOING TO
-        if (u->get_next_sector()==u->get_cur_sector()) continue;
-        else allStates[u->get_next_sector()][u->get_travel_direction()] += 1.0;
-    }*/
-
     // CONGESTION STATE
     return agents_->computeCongestionState(uavs_);
 }
@@ -230,10 +213,8 @@ void UTMDomainAbstract::simulateStep(matrix2d agent_actions) {
 
     // New uavs_ appear
     if (action_changed) {
-        matrix2d w = agents_->actionsToWeights(agent_actions);
-        for (size_t i = 0; i < k_num_types_; i++) {
-            high_graph_->at(i)->set_weights(w[i]);
-        }
+        matrix1d w = agents_->actionsToWeights(agent_actions);
+        high_graph_->set_weights(w);
     }
 
     // Note: this adds to traffic
@@ -241,23 +222,15 @@ void UTMDomainAbstract::simulateStep(matrix2d agent_actions) {
 
     // Make uavs_ reach their destination
     absorbUavTraffic();
-    //printf("%i,\n ", uavs_.size());
 
     // Plan over new cost maps
-   // if (action_changed)
+    // if (action_changed)
         getPathPlans();
 
     // uavs_ move
     incrementUavPath();
     if (k_objective_mode_ == "conflict")
         detectConflicts();
-
-    //for (auto l: links_) {
-    //    std::cout << l->traffic_[0].size() << ",";
-        //for (auto t : l->traffic_[0])
-         //   std::cout << t->t_ << ",";
-    //}
-    //std::cout << std::endl;
 }
 
 // Records information about a single step in the domain
@@ -265,7 +238,7 @@ void UTMDomainAbstract::logStep() {
     if (k_agent_mode_ == "sector" || k_agent_mode_ == "link") {
         matrix1d num_uavs_on_links(links_.size(), 0);
         for (size_t i = 0; i < links_.size(); i++) {
-            num_uavs_on_links[i] = links_[i]->traffic_[0].size();
+            num_uavs_on_links[i] = links_[i]->traffic_.size();
         }
         link_uavs_.push_back(num_uavs_on_links);
 
@@ -274,70 +247,15 @@ void UTMDomainAbstract::logStep() {
     }
 }
 
-// This function is called in SimNE.cpp. The first argument is the number
-// of the NN team (out of 20 or w/e pop size is) with the best performance.
-// Second arg is used to differentiate between different points in evolution
-// (trained or untrained, for example).
-// This function is called once per full simulation (words?), after the last
-// epoch
-// TODO(Brandon) -- we should probably dump this data to a file before
-// moving to the next neural evaluation
-void UTMDomainAbstract::exportStepsOfTeam(int team, string suffix) {
-    /* -- not compiling for now
-    if (linkUAVs.size() == 0) return;
-    size_t start = n_steps*team;
-    matrix2d link_log, sector_log;
-    for (size_t i = 0; i < n_steps; i++) {
-        link_log.push_back(linkUAVs[start + i]);
-        sector_log.push_back(sectorUAVs[start + i]);
-    }
-
-    // Save history of traffic in csv files
-    // Maybe it's good to change where these are saved
-    FileOut::print_vector(link_log, "link_UAVs_" + suffix + ".csv");
-    FileOut::print_vector(sector_log, "sector_UAVs_" + suffix + ".csv");
-    linkUAVs.clear();
-    sectorUAVs.clear();
-    */
-}
-
-matrix3d UTMDomainAbstract::getTypeStates() {
-    std::printf("Error, getTypeStates called. Currently inactive. Exiting.");
-    system("pause");
-    exit(1);
-/*    matrix3d all_states = zeros(k_num_agents_, k_num_types_,
-        k_num_state_elements_);
-
-    matrix2d state_printout = zeros(k_num_agents_, k_num_state_elements_);
-    if (k_agent_mode_ == "sector") {
-        for (UAV* u : uavs_) {
-            int a = u->getCurSector();
-            size_t id = STATIC_TYPE;
-            int dir = u->getTravelDirection();
-            all_states[a][id][dir] += 1.0;
-            state_printout[a][dir]++;
-        }
-    } else {
-        // link definition
-        for (UAV* u : uavs_) {
-            size_t a = u->getCurLink();
-            size_t id = STATIC_TYPE;
-            all_states[a][id][0] += 1.0;
-        }
-    }
-    agents_->agent_states_.push_back(state_printout);
-    return all_states;*/
-}
-
 bool UTMDomainAbstract::uavReadyToMove(vector<Link*> L,
     map<edge, size_t> *L_IDs, UAV *u) {
     size_t n, c;
-    n = L_IDs->at(u->getNthEdge(1)); // Next link ID
-    c = L_IDs->at(u->getNthEdge(0)); // Cur link ID
+    n = L_IDs->at(u->getNthEdge(1));  // Next link ID
+    c = L_IDs->at(u->getNthEdge(0));  // Cur link ID
 
     if (u->atTerminalLink())
         return false;
-    if (L[n]->atCapacity(STATIC_TYPE))
+    if (L[n]->atCapacity())
         return false;
     u->incrementPath();
     L[n]->moveFrom(u, L[c]);
@@ -517,7 +435,7 @@ void UTMDomainAbstract::absorbUavTraffic() {
             }
         }
     }
-    easystl::remove_erase_if(&uavs_, [](UAV* u) { return u == NULL; });
+    remove_erase_if(&uavs_, [](UAV* u) { return u == NULL; });
 }
 
 void UTMDomainAbstract::getNewUavTraffic(int s) {

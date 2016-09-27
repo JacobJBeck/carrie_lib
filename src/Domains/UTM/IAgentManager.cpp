@@ -17,12 +17,16 @@ using easymath::operator-;
 IAgentManager::IAgentManager(size_t num_agents, size_t num_state_elements):
     k_num_state_elements_(num_state_elements)
 {
+    int num_actions = 1;
+//    G_hat = new NeuralNet(num_state_elements + num_actions, 20, 1); // approximator
+
     YAML::Node config = YAML::LoadFile("config.yaml");
     k_square_reward_mode_ = config["modes"]["square"].as<bool>();
     k_alpha_ = config["constants"]["alpha"].as<double>();
     std::string rwd = config["modes"]["reward"].as<std::string>();
     size_t num_types = UTMModes::getNumTypes(config);
-    metrics_ = vector<Reward_Metrics>(num_agents, Reward_Metrics(num_types));
+    metrics_ = vector<Reward_Metrics>(num_agents, Reward_Metrics());
+
 
     try {
         if (rwd == "difference_avg") {
@@ -48,40 +52,25 @@ IAgentManager::IAgentManager(size_t num_agents, size_t num_state_elements):
 matrix1d IAgentManager::global() {
     double sum = 0.0;
     for (Reward_Metrics r : metrics_) {
-        sum += easymath::sum(r.local_);
+        sum += r.local_;
     }
     return matrix1d(metrics_.size(), -sum);
 }
 
 matrix1d IAgentManager::GcAverage() {
-    matrix1d G_c = zeros(metrics_.size());
+    matrix1d G_c = matrix1d(metrics_.size(), 0.0);
     for (size_t i = 0; i < metrics_.size(); i++)
-        G_c[i] = -sum(metrics_[i].g_avg_);
-
+        G_c[i] = -metrics_[i].g_avg_;
     return G_c;
 }
 
 void IAgentManager::addAverageCounterfactual() {
-    // This actually is a local reward
-    /*size_t n_types = metrics[0].local.size();
-    size_t n_agents = metrics.size();
-
-    for (size_t i = 0; i < metrics.size(); i++) {
-        matrix1d m = zeros(n_types);
-        for (size_t j = 0; j < metrics.size(); j++) {
-            if (i != j)
-                m = m + metrics[i].local;
-            else
-                m = m + (metrics[i].local / (*steps));
-        }
-        metrics[i].G_avg = m;
-    }*/
 }
 
 matrix1d IAgentManager::GcDownstream() {
     matrix1d G_c = zeros(metrics_.size());
     for (size_t i = 0; i < metrics_.size(); i++) {
-        G_c[i] = -sum(metrics_[i].g_minus_downstream_);
+        G_c[i] =  -metrics_[i].g_minus_downstream_;
     }
     return G_c;
 }
@@ -89,7 +78,7 @@ matrix1d IAgentManager::GcDownstream() {
 matrix1d IAgentManager::GcRealloc() {
     matrix1d G_c = zeros(metrics_.size());
     for (size_t i = 0; i < metrics_.size(); i++) {
-        G_c[i] = -sum(metrics_[i].g_random_realloc_);
+        G_c[i] = -metrics_[i].g_random_realloc_;
     }
     return G_c;
 }
@@ -97,13 +86,13 @@ matrix1d IAgentManager::GcRealloc() {
 matrix1d IAgentManager::GcTouched() {
     matrix1d G_c = zeros(metrics_.size());
     for (size_t i = 0; i < metrics_.size(); i++) {
-        G_c[i] = -sum(metrics_[i].g_touched_);
+        G_c[i] = -metrics_[i].g_touched_;
     }
     return G_c;
 }
 
 matrix1d IAgentManager::Gc0() {
-    return zeros(metrics_.size());
+    return matrix1d(metrics_.size(),0.0);
 }
 
 matrix1d IAgentManager::performance() {
@@ -149,6 +138,5 @@ void IAgentManager::reset() {
     agent_actions_.clear();
     agent_states_.clear();
     size_t n_agents = metrics_.size();
-    size_t n_types = metrics_[0].local_.size();
-    metrics_ = std::vector<Reward_Metrics>(n_agents, Reward_Metrics(n_types));
+    metrics_ = std::vector<Reward_Metrics>(n_agents, Reward_Metrics());
 }

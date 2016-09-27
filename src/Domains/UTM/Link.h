@@ -11,25 +11,21 @@ class Link {
  public:
      enum {NOT_ON_LINK};  // link exceptions
      Link(size_t id, size_t source, size_t target, size_t time,
-         std::vector<size_t> capacity, size_t cardinal_dir, size_t num_types);
+         size_t capacity, size_t cardinal_dir);
 
     //!
-     bool atCapacity(size_t UAV_type);
+     bool atCapacity();
 
-     int numOverCapacity(size_t type_ID);
-    std::vector<std::list<UAV*> > traffic_;
+     int numOverCapacity();
+    std::list<UAV*> traffic_;
     size_t countTraffic() {
-        size_t count = 0;
-        for (std::list<UAV*> t : traffic_) {
-            count += t.size();
-        }
-        return count;
+        return traffic_.size();
     }
 
 
     //! Returns the predicted amount of time it would take to cross the node if
     //! the UAV got there immediately
-    matrix1d predictedTraversalTime();
+    double predictedTraversalTime();
 
     //! Grabs the UAV u from link l
     void moveFrom(UAV* u, Link* l);
@@ -48,8 +44,7 @@ class Link {
  private:
     const size_t k_id_;
     const int time_;  // Amount of time it takes to travel across link
-    size_t k_num_types_;
-    std::vector<size_t> k_capacity_;  // Capacity for each UAV type [#types]
+    size_t k_capacity_;  // Capacity for each UAV type [#types]
 };
 
 /**
@@ -63,12 +58,12 @@ class Link {
 class LinkAgentManager : public IAgentManager {
  public:
     // The agent that communicates with others
-    LinkAgentManager(size_t num_edges, size_t num_types,
+    LinkAgentManager(size_t num_edges,
         std::vector<Link*> links, size_t num_state_elements);
     virtual ~LinkAgentManager() {}
     // weights are ntypesxnagents
 
-    const size_t k_num_edges_, k_num_types_;
+    const size_t k_num_edges_;
 
     /**
     * Translates the output of a neural network into costs applied to a link.
@@ -81,7 +76,7 @@ class LinkAgentManager : public IAgentManager {
     * @param agent_actions neural network output, in the form of [agent #][type #]
     * @return the costs for each link in the graph
     */
-    virtual matrix2d actionsToWeights(matrix2d agent_actions);
+    virtual matrix1d actionsToWeights(matrix2d agent_actions);
 
     std::vector<Link*> links_;
     std::map<std::pair<size_t, size_t>, size_t> k_link_ids_;
@@ -98,9 +93,9 @@ class LinkAgentManager : public IAgentManager {
     matrix2d computeCongestionState(const std::list<UAV*>& uavs) {
         size_t num_agents = links_.size();
         matrix2d all_states = easymath::zeros(num_agents,
-            k_num_state_elements_);
+            1);
         for (UAV* u : uavs)
-            all_states[getNthLink(u,0)][STATIC_TYPE]++;
+            all_states[getNthLink(u,0)][0]++;
         agent_states_.push_back(all_states);
         return all_states;
     }

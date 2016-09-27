@@ -11,8 +11,6 @@
 // libraries includes
 #include "Planning/include/LinkGraph.h"
 
-#define STATIC_TYPE 0 // replaces u->getType()
-
 class UAV {
     /*
     This class is for moving UAVs in the airspace. They interact with the
@@ -20,7 +18,7 @@ class UAV {
     */
 public:
     typedef size_t UAVType;
-    UAV(int start_sector, int end_sector, UAVType t, LinkGraph* high_graph);
+    UAV(int start_sector, int end_sector, LinkGraph* high_graph);
     virtual ~UAV() {};
     void reset(int start_sector, int end_sector);
     // Gets the zero-indexed nth edge in the path
@@ -51,38 +49,19 @@ public:
 private:
 
 
-    //size_t getNextSector() const { return getNthSector(1); }
-    //virtual size_t getCurSector() const { return cur_sector_; }
-    //size_t getType() const { return k_type_id_; }
-    //size_t getCurLink() const { return cur_link_id_; }
-    //void setCurLinkId(size_t link_id) { cur_link_id_ = link_id; }
-    //void setCurSectorId(size_t sId) {
-    //    sectors_touched_.insert(sId);
-    //    cur_sector_ = sId;
-    //}
-
-
 
     int getTravelDirection() const {
         return high_graph_->get_direction(cur_sector_, getNthSector(1));
     }
-    //bool linkTouched(size_t lId) const { return links_touched_.count(lId) > 0; }
-    //bool sectorTouched(size_t sId) const {
-    //    return sectors_touched_.count(sId) > 0;
-    //}
 
- //protected:
     std::string k_search_mode_;
     std::list<size_t> high_path_;
     LinkGraph* high_graph_;
-    size_t cur_sector_;
-    size_t end_sector_;
+    size_t cur_sector_, next_sector_, end_sector_;
     std::list<size_t> getBestPath() const {
         return Planning::astar<LinkGraph, size_t>
             (high_graph_, cur_sector_, end_sector_);
     }
-    size_t next_sector_;
-    double k_speed_;  // connected to type_ID
 
  //private:
     size_t k_id_;  //! const in run, but based on non-constant variable
@@ -90,15 +69,7 @@ private:
     // Typedefs
     typedef std::pair<size_t, size_t> edge;
 
-    // Constant
-    const size_t k_type_id_;
-
-    // Non-constant
-    //size_t cur_link_id_;
-
     int t_;
-    //std::set<size_t> sectors_touched_, links_touched_;
-
     size_t next_sector_id_;  // This gets updated after UAV moves
     size_t cur_sector_id_;   // for debugging
 };

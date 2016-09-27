@@ -10,7 +10,7 @@
 
 #include "Domains/IDomainStateful.h"
 #include "IAgentManager.h"
-#include "Planning/include/MultiGraph.h"
+#include "Planning/include/LinkGraph.h"
 #include "Link.h"
 #include "Sector.h"
 
@@ -24,7 +24,7 @@ class UTMDomainAbstract : public IDomainStateful {
     typedef std::pair<size_t, size_t> edge;
     IAgentManager* agents_;
     size_t k_num_sectors_;
-    MultiGraph<LinkGraph> *high_graph_;
+    LinkGraph *high_graph_;
     std::map<edge, size_t> *k_link_ids_;
     std::vector<Link*> links_;
     std::string k_reward_mode_;
@@ -48,9 +48,7 @@ class UTMDomainAbstract : public IDomainStateful {
     void getNewUavTraffic(int s);
     virtual void absorbUavTraffic();
     matrix2d getStates();
-    matrix3d getTypeStates();
     void logStep();
-    void exportStepsOfTeam(int team, std::string suffix);
     void exportSectorLocations(int fileID);
     virtual matrix1d getPerformance();
     virtual matrix1d getRewards();

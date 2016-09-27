@@ -10,20 +10,14 @@
 #include "FileIO/include/FileOut.h"
 #include "UAV.h"
 
-/**
-* Provides an interface for agents to interact with the simulator.
-* This allows for redefinition of agents in the UTM simulation, and also
-* collects information relevant to calculating difference, global, and
-* local rewards. Logging of agent actions can also be performed for
-* qualitative assessment of behavior.
-*/
+class IAgentManager { // todo: replace with different 'rewards' rather than agents..
 
-class IAgentManager {
  public:
     typedef matrix1d(IAgentManager::*counterfactual_method)();
     counterfactual_method counterfactual;
     double k_alpha_;
     size_t k_num_state_elements_;
+    //NeuralNet* G_hat;
 
     virtual matrix2d computeCongestionState(const std::list<UAV*> &UAVs) = 0;
     //! Constructor that sets up agent management based on UTMModes.
@@ -58,7 +52,7 @@ class IAgentManager {
     matrix1d performance();
 
     //! Translates neural net output to link search costs
-    virtual matrix2d actionsToWeights(matrix2d agent_actions) = 0;
+    virtual matrix1d actionsToWeights(matrix2d agent_actions) = 0;
 
     //! Stored agent actions, [*step][agent][action]
     matrix3d agent_actions_;
@@ -85,19 +79,19 @@ class IAgentManager {
         * so that data for this calculation is not scattered all over the
         * simulator.
         */
-        explicit Reward_Metrics(size_t n_types) :
-            local_(easymath::zeros(n_types)),
-            g_avg_(easymath::zeros(n_types)),
-            g_minus_downstream_(easymath::zeros(n_types)),
-            g_random_realloc_(easymath::zeros(n_types)),
-            g_touched_(easymath::zeros(n_types))
+        explicit Reward_Metrics() :
+            local_(0),
+            g_avg_(0),
+            g_minus_downstream_(0),
+            g_random_realloc_(0),
+            g_touched_(0)
         {};
 
-        matrix1d local_;                 //! Local reward
-        matrix1d g_avg_;                 //! Average counterfactual
-        matrix1d g_minus_downstream_;    //! Downstream counterfactual
-        matrix1d g_random_realloc_;      //! Random reallocation counterfactual
-        matrix1d g_touched_;             //! Touched counterfactual
+        double local_;                 //! Local reward
+        double g_avg_;                 //! Average counterfactual
+        double g_minus_downstream_;    //! Downstream counterfactual
+        double g_random_realloc_;      //! Random reallocation counterfactual
+        double g_touched_;             //! Touched counterfactual
     };
 
     //! Resets for the next simulation call

@@ -13,13 +13,12 @@ class Sector {
     typedef std::pair<size_t,size_t> edge;
     // An area of airspace to control
     Sector(easymath::XY loc, size_t sector_id, std::vector<size_t> connections,
-        std::vector<easymath::XY> dest_locs, size_t num_types):
-        k_loc_(loc), k_id_(sector_id), k_connections_(connections), k_num_types_(num_types){}
+        std::vector<easymath::XY> dest_locs):
+        k_loc_(loc), k_id_(sector_id), k_connections_(connections){}
     ~Sector() {}
 
     // Location properties
     const size_t k_id_;  // the identifier for this sector
-    size_t k_num_types_;
     const std::vector<size_t> k_connections_;
     const easymath::XY k_loc_;  // sector center
     Fix* generation_pt_;

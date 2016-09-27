@@ -9,10 +9,10 @@
 //! Class that manages sectors_ as agents
 class SectorAgentManager : public IAgentManager {
  public:
-    SectorAgentManager(std::vector<Link*> links, size_t num_types,
+    SectorAgentManager(std::vector<Link*> links,
         std::vector<Sector*> sectors, size_t num_state_elements) :
         IAgentManager(sectors_.size(), num_state_elements),
-        k_num_types_(num_types), links_(links), sectors_(sectors) {
+        links_(links), sectors_(sectors) {
         for (Link* l : links_) {
            k_links_toward_sector_[l->k_target_].push_back(l);
         }
@@ -21,7 +21,6 @@ class SectorAgentManager : public IAgentManager {
 
     std::vector<Link*> links_;  // links_ in the entire system
     std::map<int, std::vector<Link*> > k_links_toward_sector_;
-    size_t k_num_types_;
     
     matrix2d computeCongestionState(const std::list<UAV*>& uavs) {
         size_t n_agents = sectors_.size();
@@ -46,26 +45,22 @@ class SectorAgentManager : public IAgentManager {
         return allStates;
     }
 
-    virtual matrix2d actionsToWeights(matrix2d agent_actions) {
+    virtual matrix1d actionsToWeights(matrix2d agent_actions) {
         // Converts format of agent output to format of A* weights
 
-        matrix2d weights = easymath::zeros(k_num_types_, links_.size());
+        matrix1d weights = easymath::zeros(links_.size());
         for (size_t i = 0; i < links_.size(); i++) {
-            for (size_t j = 0; j < k_num_types_; j++) {
-                // type / direction combo
-                size_t s = links_[i]->k_source_;
-                size_t d = j*(k_num_types_ - 1) + links_[i]->k_cardinal_dir_;
+            size_t s = links_[i]->k_source_;
+            size_t d = links_[i]->k_cardinal_dir_;
 
-                // turns into type/edge combo
-                weights[j][i] = agent_actions[s][d] * 1000.0;
-            }
+            weights[i] = agent_actions[s][d] * 1000.0;
         }
         return weights;
     }
     std::vector<Sector*> sectors_;
 
     void addDelay(UAV* u) {
-        metrics_.at(u->getNthSector(0)).local_[STATIC_TYPE]++;
+        metrics_.at(u->getNthSector(0)).local_++;
     }
     void addDownstreamDelayCounterfactual(UAV* u) {
         // remove the effects of the UAV for the counterfactual..
@@ -74,20 +69,6 @@ class SectorAgentManager : public IAgentManager {
         printf("Error -- addDelayDownstreamCounterfactual called. This is disabled. Exiting.");
         system("pause");
         exit(1);
-        /*
-        if (k_square_reward_mode_) {
-            // Nonfunctional, todo.
-            printf("SQUARED TODO");
-            exit(1);
-        } else {
-            for (size_t i = 0; i < metrics_.size(); i++) {
-                if (!u->sectorTouched(i)) {
-                    metrics_[i].g_minus_downstream_[STATIC_TYPE]++;
-                } else {
-                    continue;
-                }
-            }
-        }*/
     }
 
     void detectConflicts() {
@@ -95,14 +76,12 @@ class SectorAgentManager : public IAgentManager {
         for (size_t s = 0; s < sectors_.size(); s++) {
             std::vector<Link*> toward = k_links_toward_sector_[s];
             for (size_t i = 0; i < toward.size(); i++) {
-                for (size_t j = 0; j < toward[i]->traffic_.size(); j++) {
-                    int over_capacity = toward[i]->numOverCapacity(j);
-                    if (over_capacity <= 0) continue;
-                    else if (k_square_reward_mode_)
-                        metrics_[i].local_[j] += over_capacity*over_capacity;
-                    else
-                        metrics_[i].local_[j] += over_capacity;
-                }
+                int over_capacity = toward[i]->numOverCapacity();
+                if (over_capacity <= 0) continue;
+                else if (k_square_reward_mode_)
+                    metrics_[i].local_ += over_capacity*over_capacity;
+                else
+                    metrics_[i].local_ += over_capacity;
             }
         }
     }
