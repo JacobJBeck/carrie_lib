@@ -122,14 +122,37 @@ public:
 
 
 class RoverDomain: public IDomainStateful {
+public:
     POI __pois[NPOIS];
     Rover __rovers[NROVS];
     std::vector<POI> pois;
     std::vector<Rover> rovers;
-    RoverDomain(): IDomainStateful(100,2, 8,NROVS){
+    RoverDomain() : IDomainStateful(100, 2, 8, NROVS) {
         pois.assign(__pois, __pois + NPOIS);
         rovers.assign(__rovers, __rovers + NROVS);
+        initialize();
     }
+    matrix2d getStates() {
+        matrix2d S;
+        for (auto r : rovers) {
+            S.push_back(matrix1d());
+            for (auto s : r.psensor) {
+                S.back().push_back(s.sense());
+            }
+            for (auto s : r.rsensor) {
+                S.back().push_back(s.sense());
+            }
+        }
+        return S;
+    }
+    matrix1d getRewards() {
+        return matrix1d(k_num_agents_, G());
+    }
+    matrix1d getPerformance() {
+        return getRewards();
+    }
+
+    void logStep() {}
 
     void initialize() {
         Locs px, py, rx, ry;
@@ -167,6 +190,20 @@ class RoverDomain: public IDomainStateful {
         }
         return Gt;
     }
+
+    void simulateStep(matrix2d A) {
+        for (int i = 0; i < A.size(); i++) {
+            rovers[i].x_ += A[i][0];
+            rovers[i].y_ += A[i][1];
+        }
+    }
+    std::string createExperimentDirectory(std::string s) { return ""; }
+    void reset() {
+        pois.assign(__pois, __pois + NPOIS);
+        rovers.assign(__rovers, __rovers + NROVS);
+        initialize();
+    }
+    ~RoverDomain() {};
 };
 
 

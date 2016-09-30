@@ -14,7 +14,11 @@ typedef std::vector<matrix2d> matrix3d;
 class IDomainStateful {
  public:
     explicit IDomainStateful();
-    virtual ~IDomainStateful(void);
+    IDomainStateful(size_t num_states, size_t num_actions, size_t num_agents, size_t num_steps) :
+        k_num_actions_(num_actions), k_num_agents_(num_agents), k_num_states_(num_states), k_num_steps_(num_steps) {
+
+    }
+    virtual ~IDomainStateful(void) {};
 
     // Returns the state vector for the set of agents, [AGENTID][STATEELEMENT]
     virtual matrix2d getStates() = 0;

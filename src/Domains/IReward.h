@@ -11,6 +11,7 @@ class IReward {
 };
 
 class DiffAvg: public IReward {
+    // The difference reward for the 'average'
     DiffAvg() {
         name = "DiffAvg";
     }
@@ -31,6 +32,14 @@ class DiffRealloc : public IReward {
 class DiffTouched : public IReward {
     DiffTouched() {
         name = "DiffTouched";
+    }
+};
+
+class DiffNeuralNet : public IReward {
+    DiffNeuralNet() {
+        name = "DiffNeuralNet";
+        size_t k_training_samples = 500000; // number of samples needed to approximate reward
+        // TODO: deep net? Convolutional net? Can we make this episodic?
     }
 };
 
