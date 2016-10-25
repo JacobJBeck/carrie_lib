@@ -139,26 +139,15 @@ void print3(const vector3<T> &output, std::string file_name,
     }
 }
 
-/* Takes an input dictating size of 3rd dimension */
+/* Takes an input dictating size of 2nd dimension */
 template <class T>
-vector3<T> read3(std::string file_name, size_t dim3,
+vector3<T> read3(std::string file_name, size_t dim2,
     bool overwrite = true, std::string separator = ",") {
     vector2<T> v = read2<T>(file_name);
-    size_t dim1 = v.size();
-    size_t dim2 = v[0].size();
 
-    int ind = 0;
-    vector3<T> vout = vector3<T>(dim1);
-    for (size_t i = 0; i < dim3; i++) {
-        vector2<T> vinner(dim2, std::vector<T>(dim3, 0));
-        for (size_t j = 0; j < dim2; j++) {
-            ind = 0;
-            for (size_t k = 0; k < dim3; k++) {
-                ind++;
-                vout[i][j][k] = vinner[i][ind];
-            }
-
-        }
+    vector3<T> vout(v.size()/dim2);
+    for (int i = 0; i < v.size(); i++) {
+        vout[static_cast<double>(i) / dim2].push_back(v[i]);
     }
     return vout;
 }
@@ -201,6 +190,7 @@ void print2(const vector2<T> &output, std::ofstream &file,
     std::string separator) {
     for (std::vector<T> outer : output) {
         print(outer, file, separator);
+        file << "\n";
     }
 }
 

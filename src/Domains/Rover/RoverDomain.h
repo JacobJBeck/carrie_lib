@@ -198,7 +198,7 @@ class RoverDomain : public IDomainStateful {
     }
 
     matrix1d G_log;
-    matrix3d state_action_log_;
+    matrix3d state_action_log_; //state_action_log[num_episodes*numotherstuff][agent][stateactiontime] 
 
     void resetSAG() {
         state_history_ = matrix2d(k_num_agents_);

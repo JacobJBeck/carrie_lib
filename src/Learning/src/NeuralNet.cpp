@@ -101,7 +101,7 @@ void NeuralNet::save(string fileout) {
         matrix1d flat_wbar = flatten(l.w_bar_);
         out[1].insert(out[1].end(), flat_wbar.begin(), flat_wbar.end());
     }
-    cio::print2(out, fileout);
+    cio::print2(out, fileout,false);
 }
 
 void NeuralNet::load(matrix1d node_info, matrix1d wt_info) {
@@ -109,6 +109,7 @@ void NeuralNet::load(matrix1d node_info, matrix1d wt_info) {
     size_t num_hidden = static_cast<int>(node_info[1]);
     size_t num_outputs = static_cast<int>(node_info[2]);
 
+    layers_.clear();
     layers_.push_back(Layer(num_inputs, num_hidden));
     layers_.push_back(Layer(num_hidden, num_outputs));
 
