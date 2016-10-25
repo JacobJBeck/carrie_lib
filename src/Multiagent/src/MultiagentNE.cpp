@@ -9,7 +9,7 @@ MultiagentNE::MultiagentNE(size_t num_agents, size_t num_inputs,
     size_t num_hidden, size_t num_outputs) {
     std::printf("Creating a MultiagentNE object.\n");
     for (size_t i = 0; i < num_agents; i++) {
-        agents.push_back(new NeuroEvo(num_agents, num_inputs, num_hidden,
+        agents.push_back(new NeuroEvo(num_inputs, num_hidden,
             num_outputs));
     }
 }
@@ -27,14 +27,14 @@ MultiagentNE::~MultiagentNE(void) {
 void MultiagentNE::generate_new_members() {
     // Generate new population members
     for (size_t i = 0; i < agents.size(); i++) {
-        reinterpret_cast<NeuroEvo*>(agents[i])->generate_new_members();
+        reinterpret_cast<NeuroEvo*>(agents[i])->generateNewMembers();
     }
 }
 
 void MultiagentNE::select_survivors() {
     // Specific to Evo: select survivors
     for (size_t i = 0; i < agents.size(); i++) {
-        reinterpret_cast<NeuroEvo*>(agents[i])->select_survivors();
+        reinterpret_cast<NeuroEvo*>(agents[i])->selectSurvivors();
     }
 }
 
@@ -45,7 +45,7 @@ bool MultiagentNE::set_next_pop_members() {
     vector<bool> is_another_member(agents.size(), false);
     for (size_t i = 0; i < agents.size(); i++) {
         is_another_member[i]
-            = reinterpret_cast<NeuroEvo*>(agents[i])->select_new_member();
+            = reinterpret_cast<NeuroEvo*>(agents[i])->selectNewMember();
     }
     for (size_t i = 0; i < is_another_member.size(); i++) {
         if (!is_another_member[i]) {

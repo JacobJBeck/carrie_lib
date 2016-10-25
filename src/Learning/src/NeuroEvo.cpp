@@ -8,7 +8,30 @@
 using std::list;
 using std::vector;
 
-void NeuroEvo::update_policy_values(double R) {
+matrix1d operator*(const double A, matrix1d B) {
+    for (auto &b : B) {
+        b *= A;
+    }
+    return B;
+}
+
+matrix2d operator*(const double A, matrix2d B) {
+        for (auto &b : B) {
+            b = A*b;
+        }
+        return B;
+    }
+
+NeuroEvo::NeuroEvo(size_t num_input, size_t num_hidden, size_t num_output,
+    size_t population_size) : k_population_size_(population_size) {
+    for (size_t i = 0; i <population_size; i++) {
+        NeuralNet* nn = new NeuralNet(num_input, num_hidden, num_output);
+        population_.push_back(nn);
+    }
+    pop_member_active_ = population_.begin();
+}
+
+void NeuroEvo::updatePolicyValues(double R) {
     // Add together xi values, for averaging
     double xi = 0.1;  // "learning rate" for NE
     double V = (*pop_member_active_)->getEvaluation();
@@ -16,11 +39,11 @@ void NeuroEvo::update_policy_values(double R) {
     (*pop_member_active_)->update(V);
 }
 
-NeuroEvo::Action NeuroEvo::get_action(NeuroEvo::State state) {
+NeuroEvo::Action NeuroEvo::getAction(NeuroEvo::State state) {
     return (**pop_member_active_)(state);
 }
 
-NeuroEvo::Action NeuroEvo::get_action(std::vector<NeuroEvo::State> state) {
+NeuroEvo::Action NeuroEvo::getAction(std::vector<NeuroEvo::State> state) {
     State stateSum(state[0].size(), 0.0);
 
     // state[type][state_element] -- specifies combination for state
@@ -30,7 +53,7 @@ NeuroEvo::Action NeuroEvo::get_action(std::vector<NeuroEvo::State> state) {
         }
     }
 
-    return get_action(stateSum);
+    return getAction(stateSum);
 }
 
 void NeuroEvo::deletePopulation() {
@@ -41,7 +64,7 @@ void NeuroEvo::deletePopulation() {
 }
 
 
-bool NeuroEvo::select_new_member() {
+bool NeuroEvo::selectNewMember() {
     ++pop_member_active_;
     if (pop_member_active_ == population_.end()) {
         pop_member_active_ = population_.begin();
@@ -51,7 +74,7 @@ bool NeuroEvo::select_new_member() {
     }
 }
 
-void NeuroEvo::generate_new_members() {
+void NeuroEvo::generateNewMembers() {
     // Mutate existing members to generate more
     list<NeuralNet*>::iterator popMember = population_.begin();
     for (size_t i = 0; i < k_population_size_; i++) {  // add new members
@@ -80,7 +103,7 @@ void random_shuffle(list<NeuralNet*> *L) {
     copy(tmp.begin(), tmp.end(), L->begin());
 }
 
-void NeuroEvo::select_survivors() {
+void NeuroEvo::selectSurvivors() {
     // Select neural networks with the HIGHEST FITNESS
     population_.sort(NNCompare);  // Sort by the highest fitness
     size_t nExtraNN = population_.size() - k_population_size_;
@@ -93,8 +116,7 @@ void NeuroEvo::select_survivors() {
     pop_member_active_ = population_.begin();
 }
 
-
-void NeuroEvo::deep_copy(const NeuroEvo &NE) {
+void NeuroEvo::deepCopy(const NeuroEvo &NE) {
     // Creates new pointer addresses for the neural nets
     k_population_size_ = NE.k_population_size_;
 
@@ -112,7 +134,7 @@ void NeuroEvo::save(std::string fileout) {
 }
 
 void NeuroEvo::load(std::string filein) {
-    matrix2d netinfo = easyio::read2<double>(filein);
+    matrix2d netinfo = cio::read2<double>(filein);
 
     int i = 0;
     for (NeuralNet* p : population_) {
