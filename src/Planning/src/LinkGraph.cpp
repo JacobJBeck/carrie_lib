@@ -1,5 +1,6 @@
 // Copyright 2016 Carrie Rebhuhn
 #include "LinkGraph.h"
+#include "FileIO/include/FileIn.h"
 
 #include <string>
 #include <list>
@@ -105,10 +106,10 @@ void LinkGraph::print_graph(string file_path) {
     string CONNECTIONS_FILE = file_path + "connections.csv";
     string NODES_FILE = file_path + "nodes.csv";
     string EDGES_FILE = file_path + "edges.csv";
-
-    FileOut::print_pair_container(locations, NODES_FILE);
-    FileOut::print_pair_container(get_edges(), EDGES_FILE);
-    FileOut::print_vector(connections_matrix, CONNECTIONS_FILE);
+    
+    cio::printPairs(locations, NODES_FILE);
+    cio::printPairs(get_edges(), EDGES_FILE);
+    cio::print2(connections_matrix, CONNECTIONS_FILE);
 }
 
 bool LinkGraph::fully_connected() {

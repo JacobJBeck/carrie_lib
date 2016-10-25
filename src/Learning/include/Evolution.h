@@ -1,6 +1,8 @@
 // Copyright 2016 Carrie Rebhuhn
-#ifndef SINGLEAGENT_EVOLUTION_H_
-#define SINGLEAGENT_EVOLUTION_H_
+#ifndef SRC_LEARNING_INCLUDE_EVOLUTION_H_
+#define SRC_LEARNING_INCLUDE_EVOLUTION_H_
+
+// This is a template class; thereofore it has no cpp
 
 #include <list>
 #include "IAgent.h"
@@ -18,26 +20,24 @@ class Evolution : public IAgent<Policy> {
         PopulationMember* pop_member_active_
             = new PopulationMember(population_->begin());
     }
-    ~Evolution() {
-        easystl::clear(population_);
-    }
+    ~Evolution() { easystl::clear(population_); }
 
     //! Mutators
-    virtual void generate_new_members() = 0;
-    virtual void activate_next_member() {
+    virtual void generateNewMembers() = 0;
+    virtual void activateNextMember() {
         pop_member_active_++;
-        this->set_policy(*pop_member_active_);
+        this->setPolicy(*pop_member_active_);
     }
-    virtual void select_survivors() = 0;
+    virtual void selectSurvivors() = 0;
     void update(const Reward &rwd) { this->policy->update(rwd); }
-    void set_first_member() {
+    void setFirstMember() {
         pop_member_active_ = this->population_->begin();
         this->policy = *pop_member_active();
     }
 
 
     //! Accessor
-    bool at_last_member() const {
+    bool atLastMember() const {
         return *this->pop_member_active_ == this->population_->end();
     }
 
@@ -48,4 +48,4 @@ class Evolution : public IAgent<Policy> {
      PopulationMember pop_member_active_;
 };
 
-#endif  // SINGLEAGENT_EVOLUTION_H_
+#endif  // SRC_LEARNING_INCLUDE_EVOLUTION_H_

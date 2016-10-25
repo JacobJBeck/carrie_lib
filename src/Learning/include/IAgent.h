@@ -16,14 +16,16 @@ class IAgent {
     virtual ~IAgent(void) {}
 
     //! Accessors
-    Action get_action(State state) { return (*policy)(state); }
+    Action getAction(State state) {
+        return (*policy_)(state);
+    }
 
     //! Mutators
-    void update_policy_values(Reward R) { policy->update(R); }
-    void set_policy(Policy* p) { policy = p; }
+    void update(Reward R) { policy_->update(R); }
+    void setPolicy(Policy* p) { policy_ = p; }
 
  private:
-    Policy* policy;
+    Policy* policy_;
 };
 
 #endif  // SINGLEAGENT_IAGENT_H_
